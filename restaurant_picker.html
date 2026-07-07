@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>食乜好？What to Eat? — Richmond</title>
+<style>
+  :root{
+    --red:#c62828; --red-dark:#8e1c1c; --gold:#f9a825; --cream:#fff8ee;
+    --ink:#2b2118; --muted:#7a6a58; --card:#ffffff; --line:#eadfce;
+    --green:#2e7d32; --chip:#f3e9d7; --chip-on:#c62828;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{font-size:20px;}
+  body{
+    margin:0; background:var(--cream); color:var(--ink);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC","Heiti TC",-apple-system,"Segoe UI",sans-serif;
+    line-height:1.45;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:12px 14px 90px;}
+  header{text-align:center; padding:10px 0 4px;}
+  header h1{margin:0; font-size:1.7rem; color:var(--red-dark);}
+  header .sub{color:var(--muted); font-size:0.85rem; margin-top:2px;}
+
+  .bigbtn{
+    display:block; width:100%; border:none; border-radius:22px; cursor:pointer;
+    background:linear-gradient(180deg,#d84315,var(--red)); color:#fff;
+    font-size:1.5rem; font-weight:800; padding:22px 16px; margin:14px 0 8px;
+    box-shadow:0 4px 12px rgba(198,40,40,.35); font-family:inherit;
+  }
+  .bigbtn:active{transform:scale(.98);}
+  .bigbtn small{display:block; font-size:0.95rem; font-weight:600; opacity:.92; margin-top:2px;}
+
+  .filters{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:12px; margin:10px 0;}
+  .filters h3{margin:6px 0 6px; font-size:0.95rem; color:var(--muted); font-weight:700;}
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    border:2px solid var(--line); background:var(--chip); color:var(--ink);
+    border-radius:999px; padding:9px 15px; font-size:0.95rem; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .chip.on{background:var(--chip-on); border-color:var(--chip-on); color:#fff;}
+  .favtoggle{margin-top:10px;}
+
+  .count{color:var(--muted); font-size:0.85rem; text-align:center; margin:6px 0;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:14px 16px; margin:10px 0; cursor:pointer; position:relative;
+  }
+  .card .zh{font-size:1.25rem; font-weight:800;}
+  .card .en{font-size:0.95rem; color:var(--muted); font-weight:600;}
+  .card .meta{font-size:0.85rem; color:var(--muted); margin-top:4px;}
+  .badge{display:inline-block; background:var(--chip); border-radius:8px; padding:2px 8px; margin-right:6px; font-size:0.8rem;}
+  .star{position:absolute; top:10px; right:12px; font-size:1.4rem; border:none; background:none; cursor:pointer; filter:grayscale(1); opacity:.45;}
+  .star.on{filter:none; opacity:1;}
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(43,33,24,.55); display:none;
+    align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:var(--cream); width:100%; max-width:640px; max-height:92vh; overflow-y:auto;
+    border-radius:24px 24px 0 0; padding:18px 18px 30px; animation:up .18s ease-out;
+  }
+  @keyframes up{from{transform:translateY(40px); opacity:.5;} to{transform:none; opacity:1;}}
+  .sheet .close{float:right; font-size:1.5rem; border:none; background:var(--chip); border-radius:50%;
+    width:46px; height:46px; cursor:pointer; line-height:1;}
+  .picktag{color:var(--red-dark); font-weight:800; font-size:1.05rem;}
+  .sheet h2{margin:6px 0 0; font-size:1.6rem; line-height:1.25;}
+  .sheet .en2{color:var(--muted); font-size:1.05rem; font-weight:600;}
+  .sheet .info{margin:8px 0; font-size:0.95rem; color:var(--muted);}
+  .note{background:#fff3e0; border:1px solid #ffe0b2; border-radius:12px; padding:8px 12px; font-size:0.9rem; margin:8px 0;}
+
+  .rowbtns{display:flex; gap:10px; margin:12px 0; flex-wrap:wrap;}
+  .rowbtns button, .rowbtns a{
+    flex:1; min-width:130px; text-align:center; border:none; border-radius:16px; padding:14px 10px;
+    font-size:1.05rem; font-weight:700; cursor:pointer; text-decoration:none; font-family:inherit;
+  }
+  .b-red{background:var(--red); color:#fff;}
+  .b-gold{background:var(--gold); color:#3e2723;}
+  .b-plain{background:var(--chip); color:var(--ink); border:1px solid var(--line);}
+
+  .dishes h3{margin:14px 0 6px; font-size:1.05rem; color:var(--red-dark);}
+  .dish{
+    display:flex; align-items:center; gap:10px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0;
+  }
+  .dish .dn{flex:1;}
+  .dish .dn .zh{font-size:1.1rem; font-weight:700;}
+  .dish .dn .en{font-size:0.85rem; color:var(--muted);}
+  .dish .dn .dnote{font-size:0.8rem; color:var(--green); margin-top:2px;}
+  .rec{background:#fdecea; color:var(--red-dark); font-size:0.75rem; border-radius:8px; padding:2px 7px; font-weight:800; white-space:nowrap;}
+  .heart{border:none; background:none; font-size:1.5rem; cursor:pointer; filter:grayscale(1); opacity:.4;}
+  .heart.on{filter:none; opacity:1;}
+
+  /* forms */
+  form label{display:block; font-weight:700; font-size:0.9rem; margin:10px 0 4px;}
+  form input, form select, form textarea{
+    width:100%; font-size:1.05rem; padding:12px; border:2px solid var(--line); border-radius:12px;
+    background:#fff; font-family:inherit;
+  }
+  .toolbar{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:16px 0 6px;}
+  .toolbar button{background:none; border:1.5px solid var(--line); border-radius:12px; padding:9px 13px;
+    font-size:0.85rem; color:var(--muted); cursor:pointer; font-family:inherit; font-weight:600;}
+  .hint{font-size:0.8rem; color:var(--muted); text-align:center; margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🥢 食乜好？</h1>
+    <div class="sub">What to Eat Today? · 列治文餐廳小幫手 Richmond Helper</div>
+  </header>
+
+  <button class="bigbtn" onclick="pickRandom()">🎲 幫我揀！<small>Pick For Me!</small></button>
+
+  <div class="filters">
+    <h3>菜式 Cuisine（可揀多款 pick several）</h3><div class="chips" id="cuisineChips"></div>
+    <h3>地區 Area</h3><div class="chips" id="areaChips"></div>
+    <h3>價錢 Price</h3><div class="chips" id="priceChips"></div>
+    <div class="favtoggle chips">
+      <button class="chip" id="favChip" onclick="toggleFavOnly()">⭐ 只睇最愛 Favourites Only</button>
+    </div>
+  </div>
+
+  <div class="count" id="countLine"></div>
+  <div id="list"></div>
+
+  <div class="toolbar">
+    <button onclick="openForm()">＋ 加餐廳 Add Restaurant</button>
+    <button onclick="exportData()">⬇︎ 備份 Backup</button>
+    <button onclick="document.getElementById('importFile').click()">⬆︎ 還原 Restore</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div class="hint">資料可隨時修改 · Tap any restaurant to see dishes; family can edit everything.</div>
+</div>
+
+<!-- restaurant detail / pick result -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- add/edit form -->
+<div class="overlay" id="formOverlay" onclick="if(event.target===this)closeForm()">
+  <div class="sheet">
+    <button class="close" onclick="closeForm()">✕</button>
+    <h2 id="formTitle">加餐廳 Add Restaurant</h2>
+    <form id="restForm" onsubmit="saveForm(event)">
+      <label>中文名 Chinese Name</label><input id="f_zh" placeholder="例：陳記小廚">
+      <label>英文名 English Name *</label><input id="f_en" required placeholder="e.g. Chan's Kitchen">
+      <label>菜式 Cuisine</label><select id="f_cuisine"></select>
+      <label>地區 Area</label><select id="f_area"></select>
+      <label>價錢 Price</label>
+      <select id="f_price">
+        <option value="1">$ 平 Budget</option><option value="2" selected>$$ 中等 Moderate</option><option value="3">$$$ 貴 Higher-end</option>
+      </select>
+      <label>地址 Address（可留空 optional）</label><input id="f_addr" placeholder="e.g. 4151 Hazelbridge Way">
+      <label>備註 Note（可留空 optional）</label><input id="f_note" placeholder="e.g. 只收現金 Cash only">
+      <label>招牌菜 Dishes（每行一味：中文 / English one per line）</label>
+      <textarea id="f_dishes" rows="4" placeholder="蝦餃 / Shrimp Dumplings&#10;燒鴨 / Roast Duck"></textarea>
+      <div class="rowbtns"><button type="submit" class="b-red">儲存 Save</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+const CUISINES = {
+  dimsum:["點心早茶","Dim Sum"], cant:["粵菜海鮮","Cantonese"], bbq:["燒臘","BBQ Meats"],
+  noodle:["粥粉麵","Congee & Noodles"], shanghai:["上海菜","Shanghainese"], north:["川湘北方","Sichuan & Northern"], hkcafe:["茶餐廳","HK Café"],
+  hotpot:["火鍋","Hot Pot"], taiwan:["台灣菜","Taiwanese"], viet:["越南菜","Vietnamese"],
+  japan:["日本菜","Japanese"], korea:["韓國菜","Korean"], sea:["東南亞","SE Asian"], western:["西餐","Western"]
+};
+const AREAS = {
+  aberdeen:["時代坊一帶","Aberdeen Area"], citycentre:["市中心/三號路","City Centre"],
+  alexandra:["食街","Alexandra Rd"], steveston:["漁村","Steveston"], other:["其他","Other"]
+};
+const PRICES = {1:"$ 平 Budget", 2:"$$ 中等 Moderate", 3:"$$$ 貴 Higher-end"};
+
+const SEED = [
+// ---- 點心 / 粵菜 Dim Sum & Cantonese ----
+{id:"fishermans-terrace", zh:"漁人碼頭海鮮酒家", en:"Fisherman's Terrace", cuisine:"dimsum", area:"aberdeen", price:2, addr:"Aberdeen Centre 時代坊 3樓", note:"經典港式點心，環境舒適 Classic HK dim sum inside Aberdeen Centre.",
+ dishes:[{zh:"蝦餃",en:"Shrimp Dumplings (Har Gow)",rec:true},{zh:"蛋撻",en:"Egg Tarts",rec:true},{zh:"豉汁蒸排骨",en:"Steamed Pork Ribs in Black Bean Sauce"},{zh:"焗釀蟹蓋",en:"Baked Stuffed Crab Shell"}]},
+{id:"sea-harbour", zh:"海港大酒樓", en:"Sea Harbour Seafood", cuisine:"dimsum", area:"citycentre", price:3, addr:"No. 3 Rd 三號路", note:"公認全列治文最高級點心之一 Widely rated among Richmond's very best dim sum.",
+ dishes:[{zh:"蝦餃皇",en:"Supreme Shrimp Dumplings",rec:true},{zh:"香煎蘿蔔糕",en:"Pan-fried Turnip Cake",rec:true},{zh:"燒賣",en:"Pork & Shrimp Siu Mai"}]},
+{id:"kirin", zh:"麒麟海鮮酒家", en:"Kirin Seafood Restaurant", cuisine:"dimsum", area:"citycentre", price:3, addr:"Westminster Hwy", note:"老字號，穩陣之選 Long-running, consistently excellent.",
+ dishes:[{zh:"片皮北京鴨",en:"Peking Duck",rec:true},{zh:"龍蝦伊麵",en:"Lobster with E-Fu Noodles",rec:true},{zh:"蝦餃",en:"Shrimp Dumplings"}]},
+{id:"jade", zh:"Jade 海鮮酒家", en:"Jade Seafood Restaurant", cuisine:"dimsum", area:"alexandra", price:3, addr:"Alexandra Rd 食街", note:"高質點心 Top-tier dim sum on Food Street.",
+ dishes:[{zh:"蝦餃",en:"Shrimp Dumplings",rec:true},{zh:"陳皮牛肉球",en:"Beef Meatballs with Aged Tangerine Peel",rec:true},{zh:"馬拉糕",en:"Malay Steamed Sponge Cake"}]},
+{id:"chef-tony", zh:"Chef Tony 創意點心", en:"Chef Tony Seafood", cuisine:"dimsum", area:"citycentre", price:3, addr:"Empire Centre, No. 3 Rd", note:"新派創意點心，得過好多獎 Award-winning modern dim sum.",
+ dishes:[{zh:"黑松露燒賣",en:"Black Truffle Siu Mai",rec:true},{zh:"流沙包",en:"Salted Egg Lava Buns",rec:true},{zh:"脆皮炸鮮奶",en:"Crispy Fried Milk Custard"}]},
+{id:"golden-paramount", zh:"金百樂海鮮酒家", en:"Golden Paramount Seafood", cuisine:"dimsum", area:"other", price:2, addr:"Park Rd", note:"老派香港手工點心，用心製作 Respected old-school HK dim sum.",
+ dishes:[{zh:"糯米皮蟹肉豬肉餃",en:"Mochi-skin Crab & Pork Dumpling",rec:true},{zh:"蝦餃",en:"Shrimp Dumplings"}]},
+{id:"yue", zh:"粵 Yue", en:"Yue Restaurant", cuisine:"cant", area:"citycentre", price:3, addr:"No. 3 Rd (Lansdowne 一帶)", note:"精緻粵菜，燉湯出名 Refined Cantonese; famous double-boiled soups.",
+ dishes:[{zh:"燉湯",en:"Double-boiled Soup of the Day",rec:true,note:"適合長者 gentle & nourishing"},{zh:"精緻點心",en:"Premium Dim Sum"}]},
+{id:"sun-sui-wah", zh:"新瑞華海鮮酒家", en:"Sun Sui Wah Seafood", cuisine:"cant", area:"citycentre", price:3, addr:"No. 3 Rd", note:"乳鴿係招牌 Famous for roast squab.",
+ dishes:[{zh:"明爐燒乳鴿",en:"Roasted Squab",rec:true},{zh:"阿拉斯加皇帝蟹",en:"Alaska King Crab (seasonal)",note:"季節限定 seasonal"},{zh:"點心",en:"Dim Sum (daytime)"}]},
+{id:"fish-man", zh:"The Fish Man 魚料理", en:"The Fish Man", cuisine:"cant", area:"citycentre", price:2, addr:"Capstan Way 一帶", note:"專做魚，粵川手法都好掂 Fish specialist, Cantonese & Sichuan styles.",
+ dishes:[{zh:"清蒸游水魚",en:"Steamed Live Fish",rec:true,note:"魚肉嫩滑 very tender"},{zh:"沸騰魚",en:"Sichuan Boiled Fish in Chili Broth",rec:true}]},
+{id:"continental", zh:"富大海鮮酒家", en:"Continental Seafood", cuisine:"dimsum", area:"citycentre", price:2, addr:"Cambie Rd 一帶", note:"街坊價，飲茶熱點 Neighbourhood favourite for yum cha.",
+ dishes:[{zh:"蝦餃",en:"Shrimp Dumplings"},{zh:"炸子雞",en:"Crispy Skin Chicken",rec:true}]},
+// ---- 燒臘 BBQ ----
+{id:"hk-bbq-master", zh:"HK BBQ Master 港式燒臘", en:"HK BBQ Master", cuisine:"bbq", area:"citycentre", price:1, addr:"4651 No. 3 Rd（Superstore 樓下）", note:"人氣極高，早啲去免排隊 Very popular — go early to beat the line.",
+ dishes:[{zh:"脆皮燒肉",en:"Crispy Roast Pork",rec:true},{zh:"蜜汁叉燒",en:"Honey BBQ Pork (Char Siu)",rec:true},{zh:"豉油雞",en:"Soya Chicken"},{zh:"燒鴨",en:"Roast Duck"}]},
+{id:"parker-place-bbq", zh:"百家店燒味", en:"Parker Place Meat & BBQ", cuisine:"bbq", area:"aberdeen", price:1, addr:"Parker Place 百家店商場", note:"外賣燒味老店 Long-running BBQ counter.",
+ dishes:[{zh:"燒鴨",en:"Roast Duck",rec:true},{zh:"叉燒",en:"BBQ Pork"}]},
+// ---- 粥粉麵 Congee & Noodles ----
+{id:"max-noodle", zh:"Max 粥麵家", en:"Max Noodle House", cuisine:"noodle", area:"citycentre", price:1, addr:"City Centre", note:"雲吞麵獲獎常客 Award-winning wonton noodles.",
+ dishes:[{zh:"鮮蝦雲吞麵",en:"Shrimp Wonton Noodle Soup",rec:true},{zh:"柱侯牛腩撈麵",en:"Beef Brisket Lo Mein",rec:true},{zh:"及第粥",en:"Assorted Pork Congee"}]},
+{id:"tsim-chai", zh:"Tsim Chai 雲吞麵", en:"Tsim Chai Noodle", cuisine:"noodle", area:"citycentre", price:1, addr:"City Centre", note:"只收現金 Cash only!",
+ dishes:[{zh:"雲吞麵",en:"Wonton Noodle Soup",rec:true},{zh:"皮蛋瘦肉粥",en:"Preserved Egg & Pork Congee",rec:true,note:"啱長者 gentle comfort food"}]},
+{id:"neptune-wonton", zh:"美天雲吞麵", en:"Neptune Wonton Noodle", cuisine:"noodle", area:"alexandra", price:1, addr:"Alexandra Rd 食街", note:"開到夜晚 Open late.",
+ dishes:[{zh:"雲吞麵",en:"Wonton Noodle Soup",rec:true},{zh:"炸兩",en:"Rice Roll with Fried Dough"},{zh:"粥",en:"Congee"}]},
+{id:"deer-garden", zh:"鹿園", en:"Deer Garden Signatures", cuisine:"noodle", area:"alexandra", price:1, addr:"Alexandra Rd 食街", note:"自選配料魚湯米線 Build-your-own fish soup noodles.",
+ dishes:[{zh:"自選魚湯米線",en:"Fish Soup Rice Noodles (choose toppings)",rec:true,note:"湯底鮮甜 famous milky fish broth"},{zh:"凍檸茶",en:"Iced Lemon Tea"}]},
+{id:"yin-ji", zh:"銀記腸粉店", en:"Yin Ji Chang Fen", cuisine:"noodle", area:"alexandra", price:1, addr:"Alexandra Rd 食街", note:"廣州老字號腸粉 Famous Guangzhou rice-roll chain.",
+ dishes:[{zh:"鮮蝦腸粉",en:"Shrimp Rice Rolls",rec:true,note:"滑溜易食 soft & easy to eat"},{zh:"艇仔粥",en:"Sampan Congee",rec:true},{zh:"布拉腸",en:"Handmade Rice Rolls"}]},
+{id:"xian-cuisine", zh:"西安小吃", en:"Xi'an Cuisine", cuisine:"north", area:"citycentre", price:1, addr:"Richmond Public Market 公眾市場 2樓", note:"手工麵條，即叫即做 Hand-made noodles at the food court.",
+ dishes:[{zh:"手工拉麵",en:"Hand-pulled Noodles",rec:true},{zh:"韭菜盒子",en:"Chive Pockets",rec:true},{zh:"涼皮",en:"Cold Skin Noodles"}]},
+// ---- 上海菜 Shanghainese ----
+{id:"shanghai-river", zh:"滬江海派料理", en:"Shanghai River Restaurant", cuisine:"shanghai", area:"citycentre", price:3, addr:"7831 Westminster Hwy", note:"列治文上海菜代表 Richmond's flagship Shanghainese restaurant.",
+ dishes:[{zh:"小籠包",en:"Xiao Long Bao (Soup Dumplings)",rec:true},{zh:"醉雞",en:"Drunken Chicken",rec:true},{zh:"燻魚",en:"Shanghai Smoked Fish"},{zh:"蟹粉豆腐",en:"Crab Roe Tofu",note:"軟滑啱長者 soft & senior-friendly"}]},
+{id:"suhang", zh:"蘇杭餐廳", en:"Suhang Restaurant", cuisine:"shanghai", area:"other", price:2, addr:"Ackroyd Rd", note:"精緻江浙菜 Elegant Jiangsu-Zhejiang cooking.",
+ dishes:[{zh:"東坡肉",en:"Dongpo Braised Pork",rec:true,note:"入口即化 melt-in-mouth"},{zh:"小籠包",en:"Xiao Long Bao"},{zh:"龍井蝦仁",en:"Longjing Tea Shrimp"}]},
+{id:"dinesty", zh:"Dinesty 上海點心", en:"Dinesty Dumpling House", cuisine:"shanghai", area:"citycentre", price:2, addr:"Ackroyd Rd", note:"開放廚房睇師傅包餃 Watch dumplings made in the open kitchen.",
+ dishes:[{zh:"小籠包",en:"Xiao Long Bao",rec:true},{zh:"蔥油餅",en:"Green Onion Pancake",rec:true},{zh:"鍋貼",en:"Pan-fried Potstickers"}]},
+// ---- 茶餐廳 HK Café ----
+{id:"lido", zh:"麗都餐廳", en:"Lido Restaurant", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"懷舊港式茶餐廳 Nostalgic HK-style café.",
+ dishes:[{zh:"焗豬扒飯",en:"Baked Pork Chop Rice",rec:true},{zh:"港式奶茶",en:"HK Milk Tea",rec:true},{zh:"西多士",en:"HK French Toast"}]},
+{id:"cattle-cafe", zh:"牛仔餐廳", en:"Cattle Cafe", cuisine:"hkcafe", area:"citycentre", price:1, addr:"Alexandra Rd 一帶", note:"車仔麵自選配料 Choose-your-own cart noodles.",
+ dishes:[{zh:"車仔麵",en:"Cart Noodles (choose toppings)",rec:true},{zh:"凍奶茶",en:"Iced Milk Tea"}]},
+{id:"cha-kee", zh:"茶記", en:"Cha Kee", cuisine:"hkcafe", area:"alexandra", price:1, addr:"Alexandra Rd 食街", note:"新式茶餐廳 Modern HK café.",
+ dishes:[{zh:"雲吞撈麵",en:"Wonton Lo Mein",rec:true},{zh:"奶茶",en:"Milk Tea"}]},
+// ---- 火鍋 Hot Pot ----
+{id:"dolar-shop", zh:"豆撈坊", en:"The Dolar Shop", cuisine:"hotpot", area:"citycentre", price:3, addr:"Lansdowne 一帶", note:"高級個人火鍋 Premium individual hot pots.",
+ dishes:[{zh:"手打蝦滑",en:"Hand-made Shrimp Paste",rec:true},{zh:"安格斯肥牛",en:"Angus Beef Slices"},{zh:"自助醬料吧",en:"Sauce Bar"}]},
+{id:"liuyishou", zh:"劉一手火鍋", en:"Liuyishou Hotpot", cuisine:"hotpot", area:"citycentre", price:2, addr:"City Centre", note:"重慶風味 Chongqing-style.",
+ dishes:[{zh:"鴛鴦鍋",en:"Half & Half Broth (mild + spicy)",rec:true,note:"一邊清湯啱長者 mild side for seniors"},{zh:"蝦滑",en:"Shrimp Paste"},{zh:"毛肚",en:"Beef Tripe"}]},
+{id:"haidilao", zh:"海底撈火鍋", en:"Haidilao Hot Pot", cuisine:"hotpot", area:"citycentre", price:3, addr:"City Centre", note:"服務出名好 Famous for attentive service.",
+ dishes:[{zh:"番茄鍋底",en:"Tomato Broth (mild)",rec:true,note:"唔辣，啱長者 not spicy"},{zh:"現場拉麵",en:"Noodle-pulling Show"},{zh:"招牌牛肉",en:"Signature Beef"}]},
+// ---- 台灣菜 Taiwanese ----
+{id:"pearl-castle", zh:"Pearl Castle 台式茶坊", en:"Pearl Castle Café", cuisine:"taiwan", area:"citycentre", price:2, addr:"Continental Centre 一帶", note:"台式簡餐+珍奶 Taiwanese set meals & bubble tea.",
+ dishes:[{zh:"三杯雞飯",en:"Three-Cup Chicken on Rice",rec:true},{zh:"珍珠奶茶",en:"Bubble Milk Tea",rec:true},{zh:"滷肉飯",en:"Braised Pork Rice"}]},
+{id:"micha", zh:"Micha 台灣料理", en:"Micha", cuisine:"taiwan", area:"other", price:2, addr:"4751 Garden City Rd", note:"台式料理 Modern Taiwanese.",
+ dishes:[{zh:"台式定食",en:"Taiwanese Set Meals",rec:true},{zh:"滷肉飯",en:"Braised Pork Rice"}]},
+{id:"keelung", zh:"Keelung 基隆台灣早餐", en:"Keelung Taiwanese Breakfast & Lunch", cuisine:"taiwan", area:"citycentre", price:1, addr:"City Centre", note:"台式早餐 Traditional Taiwanese breakfast.",
+ dishes:[{zh:"鹹豆漿",en:"Savoury Soy Milk",rec:true},{zh:"蛋餅",en:"Egg Crepe",rec:true},{zh:"飯糰",en:"Rice Roll (Fan Tuan)"}]},
+{id:"monga", zh:"艋舺雞排", en:"Monga Fried Chicken", cuisine:"taiwan", area:"citycentre", price:1, addr:"4000 No. 3 Rd", note:"台灣過江龍炸雞 Famous Taiwanese chain.",
+ dishes:[{zh:"招牌雞排",en:"Giant Fried Chicken Cutlet",rec:true},{zh:"甘梅地瓜條",en:"Plum Sweet Potato Fries"}]},
+// ---- 越南菜 Vietnamese ----
+{id:"pho-han", zh:"Pho Han 越南粉", en:"Pho Han", cuisine:"viet", area:"citycentre", price:1, addr:"Westminster Hwy", note:"街坊越南粉老店 Local pho favourite.",
+ dishes:[{zh:"生牛肉河粉",en:"Rare Beef Pho",rec:true,note:"湯清味濃 clear rich broth"},{zh:"越南春卷",en:"Spring Rolls"}]},
+{id:"tres-bon", zh:"Très Bon 越式三文治", en:"Banh Mi Tres Bon", cuisine:"viet", area:"other", price:1, addr:"Richmond", note:"越式法包出名 Well-known bánh mì shop.",
+ dishes:[{zh:"越式豬肉三文治",en:"Pork Bánh Mì",rec:true},{zh:"豬腩肉水晶餃",en:"Pork Belly Bánh Bột Lọc"}]},
+// ---- 日本菜 Japanese ----
+{id:"ichiro", zh:"Ichiro 日本料理", en:"Ichiro Japanese Restaurant", cuisine:"japan", area:"steveston", price:3, addr:"Steveston 漁村", note:"漁村高質壽司 Excellent sushi in Steveston.",
+ dishes:[{zh:"廚師發辦壽司拼盤",en:"Chef's Sushi Selection",rec:true},{zh:"海膽刺身",en:"Uni Sashimi (seasonal)",rec:true}]},
+{id:"shibuyatei", zh:"Shibuyatei 拉麵", en:"Shibuyatei", cuisine:"japan", area:"steveston", price:1, addr:"Steveston 漁村", note:"小店，師傅一人打理 Tiny one-chef shop.",
+ dishes:[{zh:"拉麵",en:"Ramen",rec:true},{zh:"散壽司飯",en:"Chirashi Don",rec:true}]},
+// ---- 韓國菜 Korean ----
+{id:"sura", zh:"水剌韓國料理", en:"Sura Korean Cuisine", cuisine:"korea", area:"aberdeen", price:2, addr:"Aberdeen Centre 時代坊", note:"韓式定食，小菜多 Royal-style set meals with banchan.",
+ dishes:[{zh:"韓式定食",en:"Korean Set Meal",rec:true},{zh:"海鮮豆腐鍋",en:"Seafood Soft Tofu Stew",rec:true,note:"豆腐滑，啱長者 soft tofu"},{zh:"石鍋拌飯",en:"Stone Bowl Bibimbap"}]},
+{id:"daan", zh:"Daan 韓國料理", en:"Daan Korean Cuisine", cuisine:"korea", area:"citycentre", price:2, addr:"City Centre", note:"住家韓國菜 Homestyle Korean.",
+ dishes:[{zh:"韓式燉牛肋骨",en:"Braised Beef Short Ribs (Galbi-jjim)",rec:true,note:"腍身易食 fall-apart tender"},{zh:"海鮮蔥餅",en:"Seafood Pancake"}]},
+// ---- 東南亞 SE Asian ----
+{id:"prata-man", zh:"Prata-Man 星馬小廚", en:"Prata-Man", cuisine:"sea", area:"other", price:1, addr:"Cambie Rd", note:"海南雞飯出名 Beloved for Hainanese chicken.",
+ dishes:[{zh:"海南雞飯",en:"Hainanese Chicken Rice",rec:true,note:"雞肉嫩滑 silky poached chicken"},{zh:"印度煎餅",en:"Roti Prata",rec:true},{zh:"叻沙",en:"Laksa"}]},
+// ---- 更多粵菜海鮮 More Cantonese Seafood ----
+{id:"tin-tin", zh:"天天漁港", en:"Tin Tin Seafood Harbour", cuisine:"cant", area:"citycentre", price:3, addr:"3711 No. 3 Rd", note:"游水海鮮，飲宴熱點 Live seafood tanks; great for family dinners.",
+ dishes:[{zh:"上湯焗龍蝦伊麵",en:"Baked Lobster with E-Fu Noodles",rec:true},{zh:"片皮鴨兩食",en:"Peking Duck (two courses)",rec:true},{zh:"清蒸游水魚",en:"Steamed Live Fish"},{zh:"點心",en:"Dim Sum (daytime)"}]},
+{id:"empire-seafood", zh:"帝苑皇宴海鮮酒家", en:"Empire Seafood Restaurant", cuisine:"cant", area:"citycentre", price:3, addr:"No. 3 Rd", note:"飲宴名店 Famous for banquets & celebrations.",
+ dishes:[{zh:"阿拉斯加皇帝蟹",en:"Alaska King Crab (seasonal)",rec:true},{zh:"片皮鴨",en:"Peking Duck",rec:true},{zh:"點心",en:"Dim Sum (daytime)"}]},
+{id:"shiang-garden", zh:"香宮海鮮大酒樓", en:"Shiang Garden Seafood", cuisine:"cant", area:"citycentre", price:3, addr:"Empire Centre, No. 3 Rd 一帶", note:"老牌大酒樓 Grand old-school Cantonese house.",
+ dishes:[{zh:"點心",en:"Dim Sum (daytime)",rec:true},{zh:"化皮乳豬",en:"Crispy Suckling Pig"},{zh:"燉湯",en:"Double-boiled Soup"}]},
+{id:"red-star", zh:"鴻星海鮮酒家", en:"Red Star Seafood Restaurant", cuisine:"cant", area:"other", price:2, addr:"Cambie Rd", note:"飲茶同晚飯都得 Solid for both yum cha and dinner.",
+ dishes:[{zh:"點心",en:"Dim Sum",rec:true},{zh:"燒味拼盤",en:"BBQ Meat Platter"},{zh:"海鮮小炒",en:"Seafood Stir-fries"}]},
+{id:"neptune-seafood", zh:"美天海鮮酒家", en:"Neptune Seafood Restaurant", cuisine:"cant", area:"citycentre", price:2, addr:"City Centre", note:"夜宵都有 Also popular for late-night eats.",
+ dishes:[{zh:"避風塘炒蟹",en:"Typhoon Shelter Crab",rec:true},{zh:"點心",en:"Dim Sum"},{zh:"小炒",en:"Cantonese Stir-fries"}]},
+{id:"kam-tou", zh:"Kam Tou 海鮮酒家", en:"Kam Tou Seafood Restaurant", cuisine:"cant", area:"citycentre", price:2, addr:"City Centre", note:"街坊海鮮酒家 Neighbourhood seafood house.",
+ dishes:[{zh:"清蒸魚",en:"Steamed Fish",rec:true},{zh:"小炒",en:"Stir-fries"},{zh:"點心",en:"Dim Sum"}]},
+{id:"gingeri", zh:"Gingeri 中菜館", en:"Gingeri Chinese Cuisine", cuisine:"cant", area:"citycentre", price:2, addr:"Lansdowne 一帶", note:"精緻粵菜 Refined Cantonese cooking.",
+ dishes:[{zh:"招牌菜",en:"Chef's Specials",rec:true},{zh:"海鮮",en:"Seafood Dishes"}]},
+{id:"chucila", zh:"Chucila 點心", en:"Chucila Chinese DimSum", cuisine:"dimsum", area:"aberdeen", price:1, addr:"Yaohan Centre 八佰伴", note:"平價點心 Budget-friendly dim sum.",
+ dishes:[{zh:"蝦餃",en:"Shrimp Dumplings",rec:true},{zh:"腸粉",en:"Rice Rolls"},{zh:"燒賣",en:"Siu Mai"}]},
+{id:"daimo", zh:"地茂館香港美食", en:"Daimo Chinese Restaurant", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"香港地道風味 Old-HK street flavours.",
+ dishes:[{zh:"煲仔飯",en:"Clay Pot Rice",rec:true},{zh:"港式小食",en:"HK Street Snacks"},{zh:"粥品",en:"Congee"}]},
+{id:"double-double", zh:"Double Double 茶餐廳", en:"Double Double Restaurant", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"飯團高分茶餐廳 Highly rated on Fantuan.",
+ dishes:[{zh:"常餐",en:"All-day HK Breakfast",rec:true},{zh:"奶茶",en:"Milk Tea"},{zh:"碟頭飯",en:"Rice Plates"}]},
+// ---- 更多上海菜 More Shanghainese ----
+{id:"top-shanghai", zh:"Top Shanghai 滬菜", en:"Top Shanghai Cuisine", cuisine:"shanghai", area:"other", price:2, addr:"8100 Ackroyd Rd #120", note:"家庭式老店，小籠包出名 Family-run 20+ years; famous XLB.",
+ dishes:[{zh:"小籠包",en:"Xiao Long Bao",rec:true},{zh:"生煎包",en:"Pan-fried Pork Buns (Sheng Jian Bao)",rec:true},{zh:"上海粗炒麵",en:"Shanghai Thick Fried Noodles"},{zh:"醉雞",en:"Drunken Chicken"}]},
+{id:"shanghai-taste", zh:"米道", en:"Shanghai Taste", cuisine:"shanghai", area:"citycentre", price:2, addr:"City Centre", note:"小籠包專門店 Xiao long bao specialist.",
+ dishes:[{zh:"小籠包",en:"Xiao Long Bao",rec:true},{zh:"蔥油拌麵",en:"Scallion Oil Noodles",rec:true}]},
+{id:"northern-delicacy", zh:"Northern Delicacy 北方麵點", en:"Northern Delicacy", cuisine:"shanghai", area:"aberdeen", price:2, addr:"Aberdeen Centre 時代坊", note:"北方+江南麵點 Northern & Jiangnan style in Aberdeen.",
+ dishes:[{zh:"小籠包",en:"Xiao Long Bao",rec:true},{zh:"手工麵",en:"Hand-made Noodles"},{zh:"鍋貼",en:"Potstickers"}]},
+// ---- 西餐 Western ----
+{id:"cactus-club", zh:"Cactus Club Cafe 西餐", en:"Cactus Club Cafe", cuisine:"western", area:"citycentre", price:2, addr:"6551 No. 3 Rd (Richmond Centre)", note:"環境時尚，孫仔孫女都啱 Stylish; great for mixed-generation outings.",
+ dishes:[{zh:"四川雞生菜包",en:"Szechuan Chicken Lettuce Wraps",rec:true},{zh:"南瓜意大利雲吞",en:"Butternut Squash Ravioli",rec:true},{zh:"漢堡",en:"Burgers"}]},
+{id:"story-cafe", zh:"The Story Cafe 西餐酒吧", en:"The Story Cafe - Eatery & Bar", cuisine:"western", area:"citycentre", price:3, addr:"2800 Sexsmith Rd（Bridgeport 天車站附近）", url:"https://thestory.cafe/", note:"休閒Fine Dining，有現場音樂 Casual fine dining with live music nights; near Bridgeport SkyTrain.",
+ dishes:[{zh:"招牌牛扒",en:"Prime Steak",rec:true},{zh:"早午餐",en:"Breakfast & Brunch",rec:true},{zh:"戰斧牛扒",en:"Tomahawk Steak (pre-order 24hr)"}]},
+{id:"white-spot", zh:"White Spot 西餐", en:"White Spot", cuisine:"western", area:"citycentre", price:1, addr:"Richmond (多間分店 multiple locations)", note:"BC老字號家庭餐廳 BC's classic family restaurant since 1928.",
+ dishes:[{zh:"招牌Triple-O漢堡",en:"Legendary Triple-O Burger",rec:true},{zh:"早餐",en:"All-day Breakfast"},{zh:"薯條",en:"Endless Fries"}]},
+// ---- 更多日本菜 More Japanese (via Fantuan) ----
+{id:"toku", zh:"Toku 日本料理", en:"Toku Japanese", cuisine:"japan", area:"citycentre", price:2, addr:"Lansdowne 一帶", note:"外賣壽司人氣店 Popular sushi takeout.",
+ dishes:[{zh:"特色壽司卷",en:"Specialty Rolls",rec:true},{zh:"刺身",en:"Sashimi"},{zh:"天婦羅",en:"Tempura"}]},
+{id:"sushi-aria", zh:"Sushi Aria 壽司", en:"Sushi Aria", cuisine:"japan", area:"citycentre", price:2, addr:"City Centre", note:"高評分壽司店 Highly rated sushi.",
+ dishes:[{zh:"炙燒壽司",en:"Aburi Sushi",rec:true},{zh:"刺身拼盤",en:"Sashimi Platter"}]},
+{id:"yuu", zh:"Yuu 居酒屋", en:"Yuu Japanese Tapas", cuisine:"japan", area:"citycentre", price:2, addr:"Continental Centre 一帶", note:"日式小食居酒屋 Izakaya-style small plates.",
+ dishes:[{zh:"居酒屋小食",en:"Izakaya Tapas",rec:true},{zh:"卷物",en:"Rolls"},{zh:"日式炸雞",en:"Karaage"}]},
+{id:"ramen-taka", zh:"Ramen Taka 拉麵", en:"Ramen Taka", cuisine:"japan", area:"citycentre", price:1, addr:"City Centre", note:"飯團4.9分拉麵 4.9★ on Fantuan.",
+ dishes:[{zh:"豚骨拉麵",en:"Tonkotsu Ramen",rec:true},{zh:"唐揚雞",en:"Chicken Karaage"}]},
+{id:"zenbu", zh:"ZenBu 炙燒壽司", en:"ZenBu Aburi Sushi", cuisine:"japan", area:"aberdeen", price:2, addr:"Aberdeen Square", note:"炙燒壽司專門 Aburi (torched) sushi specialist.",
+ dishes:[{zh:"炙燒三文魚壽司",en:"Aburi Salmon Oshi",rec:true},{zh:"壽司拼盤",en:"Sushi Sets"}]},
+{id:"katsu-san", zh:"Katsu San 吉列豬扒", en:"Katsu San Japanese Pork Cutlet", cuisine:"japan", area:"other", price:2, addr:"Richmond", note:"炸豬扒專門店 Tonkatsu specialist.",
+ dishes:[{zh:"炸豬扒定食",en:"Tonkatsu Set",rec:true},{zh:"咖喱豬扒飯",en:"Katsu Curry"}]},
+// ---- 更多韓國菜 More Korean (via Fantuan) ----
+{id:"elysium", zh:"Elysium 韓式小館", en:"Elysium Korean Bistro", cuisine:"korea", area:"other", price:2, addr:"Richmond", note:"飯團5分韓國菜 Top-rated Korean on Fantuan.",
+ dishes:[{zh:"韓式定食",en:"Korean Set Meals",rec:true},{zh:"燉湯鍋",en:"Korean Stews"}]},
+{id:"dolpan", zh:"Dolpan 石板韓燒", en:"Dolpan Seoul BBQ", cuisine:"korea", area:"citycentre", price:2, addr:"City Centre", note:"石板燒肉 Stone-plate Korean BBQ.",
+ dishes:[{zh:"韓式燒肉",en:"Korean BBQ",rec:true},{zh:"石鍋拌飯",en:"Stone Bowl Bibimbap"}]},
+{id:"chicko", zh:"Chicko 韓式炸雞", en:"Chicko Chicken", cuisine:"korea", area:"citycentre", price:1, addr:"No. 3 Rd", note:"韓式炸雞 Korean fried chicken.",
+ dishes:[{zh:"韓式炸雞",en:"Korean Fried Chicken",rec:true},{zh:"甜辣醬雞",en:"Sweet & Spicy Chicken"}]},
+{id:"jang-mo-jib", zh:"Jang Mo Jib 韓國料理", en:"Jang Mo Jib", cuisine:"korea", area:"alexandra", price:2, addr:"Alexandra Rd 一帶", note:"老牌韓國餐廳 Long-running Korean restaurant.",
+ dishes:[{zh:"海鮮豆腐鍋",en:"Seafood Soft Tofu Stew",rec:true,note:"豆腐滑，啱長者 soft & gentle"},{zh:"石鍋拌飯",en:"Bibimbap"}]},
+// ---- 更多越南菜 More Vietnamese (via Fantuan) ----
+{id:"tang-viet", zh:"Tang 越南餐廳", en:"Tang Vietnamese Restaurant & Bar", cuisine:"viet", area:"citycentre", price:2, addr:"City Centre", note:"新派越南菜 Modern Vietnamese.",
+ dishes:[{zh:"生牛河粉",en:"Rare Beef Pho",rec:true},{zh:"越式碎米飯",en:"Broken Rice Plates"}]},
+{id:"pho-37", zh:"Pho 37 越南粉", en:"Pho 37", cuisine:"viet", area:"citycentre", price:1, addr:"Capstan Way", note:"飯團4.9分 4.9★ on Fantuan.",
+ dishes:[{zh:"河粉",en:"Pho",rec:true},{zh:"越南滴漏咖啡",en:"Vietnamese Coffee"}]},
+{id:"lotus-pho", zh:"Lotus Pho 越南粉", en:"Lotus Pho", cuisine:"viet", area:"other", price:1, addr:"Richmond", note:"高評分街坊粉店 Highly rated local pho.",
+ dishes:[{zh:"河粉",en:"Pho",rec:true},{zh:"春卷",en:"Spring Rolls"}]},
+{id:"hu-tieu", zh:"洪發金邊粉", en:"Hu Tieu Hong Phat", cuisine:"viet", area:"other", price:1, addr:"Richmond", note:"金邊粉專門 Phnom Penh-style noodle specialist.",
+ dishes:[{zh:"金邊粉",en:"Hu Tieu (Phnom Penh Noodles)",rec:true}]},
+{id:"lai-taste", zh:"Lai Taste 越式美食", en:"Lai Taste", cuisine:"viet", area:"citycentre", price:1, addr:"City Centre", note:"越式法包出名 Known for bánh mì.",
+ dishes:[{zh:"越式法包",en:"Bánh Mì",rec:true},{zh:"順化牛肉粉",en:"Bún Bò Huế",rec:true}]},
+// ---- 更多茶餐廳 More HK Cafés (via Fantuan) ----
+{id:"redbud", zh:"Redbud Cafe 茶餐廳", en:"Redbud Cafe", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"飯團人氣茶記 Fantuan favourite.",
+ dishes:[{zh:"焗飯",en:"Baked Rice",rec:true},{zh:"常餐",en:"HK Set Breakfast"},{zh:"奶茶",en:"Milk Tea"}]},
+{id:"hk-flavor", zh:"香港味道", en:"HongKong Flavor Restaurant", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"地道港味 Authentic HK flavours.",
+ dishes:[{zh:"碟頭飯",en:"Rice Plates",rec:true},{zh:"奶茶",en:"Milk Tea"}]},
+{id:"gloucester", zh:"告羅士打餐廳", en:"Cafe Gloucester", cuisine:"hkcafe", area:"citycentre", price:2, addr:"City Centre", note:"懷舊港式西餐 Nostalgic HK-western soy-sauce cuisine.",
+ dishes:[{zh:"瑞士雞翼",en:"Swiss Wings",rec:true},{zh:"焗豬扒飯",en:"Baked Pork Chop Rice"},{zh:"羅宋湯",en:"Borscht"}]},
+{id:"happy-hk", zh:"Happy Hong Kong 港式餐廳", en:"Happy Hong Kong Restaurant & Bar", cuisine:"hkcafe", area:"citycentre", price:1, addr:"City Centre", note:"茶記+小炒 Café classics & stir-fries.",
+ dishes:[{zh:"小炒",en:"Wok Stir-fries",rec:true},{zh:"常餐",en:"Set Meals"}]},
+// ---- 川湘北方 Sichuan & Northern ----
+{id:"chuan-yue", zh:"川粵餐廳", en:"Chuan Yue Chinese Restaurant", cuisine:"north", area:"citycentre", price:2, addr:"City Centre", note:"川菜+粵菜 Sichuan & Cantonese under one roof.",
+ dishes:[{zh:"水煮魚",en:"Sichuan Boiled Fish",rec:true},{zh:"麻婆豆腐",en:"Mapo Tofu"},{zh:"小炒",en:"Stir-fries"}]},
+// ---- 火鍋 more ----
+{id:"boiling-point", zh:"沸點", en:"Boiling Point", cuisine:"hotpot", area:"citycentre", price:1, addr:"City Centre", note:"個人小火鍋，一人一鍋 Personal mini hot pots — one each.",
+ dishes:[{zh:"臭臭鍋",en:"House Special Hot Soup",rec:true},{zh:"牛奶鍋",en:"Milk Cream Hot Soup",note:"唔辣 not spicy"}]}
+];
+
+// ---------- state ----------
+const LS_KEY = "rp_data_v1";
+let user = JSON.parse(localStorage.getItem(LS_KEY) || '{"added":[],"prefs":{},"hidden":[]}');
+let filt = {cuisines:[], area:null, price:null, favOnly:false};
+let editingId = null, lastPickId = null;
+
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(user)); }
+function pref(id){ if(!user.prefs[id]) user.prefs[id]={fav:false,dishLikes:{},userDishes:[]}; return user.prefs[id]; }
+function allRestaurants(){ return SEED.concat(user.added).filter(r=>!user.hidden.includes(r.id)); }
+function getR(id){ return SEED.concat(user.added).find(r=>r.id===id); }
+function dishesOf(r){ return (r.dishes||[]).concat(pref(r.id).userDishes||[]); }
+
+// ---------- filters UI ----------
+function chipRow(elId, obj, key){
+  const el = document.getElementById(elId);
+  const noneOn = (key==='cuisines') ? filt.cuisines.length===0 : filt[key]===null;
+  el.innerHTML = '<button class="chip '+(noneOn?'on':'')+'" onclick="setF(\''+key+'\',null)">全部 All</button>';
+  for(const k in obj){
+    const label = (key==='price') ? obj[k] : obj[k][0]+' '+obj[k][1];
+    const on = (key==='cuisines') ? filt.cuisines.includes(k) : String(filt[key])===String(k);
+    el.innerHTML += '<button class="chip '+(on?'on':'')+'" onclick="setF(\''+key+'\',\''+k+'\')">'+label+'</button>';
+  }
+}
+function setF(key,val){
+  if(key==='cuisines'){ // multi-select: tap to toggle, All clears
+    if(val===null) filt.cuisines=[];
+    else filt.cuisines = filt.cuisines.includes(val) ? filt.cuisines.filter(c=>c!==val) : filt.cuisines.concat(val);
+  } else filt[key] = (val===null)?null:(key==='price'?Number(val):val);
+  render();
+}
+function toggleFavOnly(){ filt.favOnly=!filt.favOnly; render(); }
+
+function filtered(){
+  return allRestaurants().filter(r=>
+    (!filt.cuisines.length || filt.cuisines.includes(r.cuisine)) &&
+    (!filt.area || r.area===filt.area) &&
+    (!filt.price || r.price===filt.price) &&
+    (!filt.favOnly || pref(r.id).fav)
+  );
+}
+
+// ---------- render list ----------
+function render(){
+  chipRow('cuisineChips', CUISINES, 'cuisines');
+  chipRow('areaChips', AREAS, 'area');
+  chipRow('priceChips', PRICES, 'price');
+  document.getElementById('favChip').classList.toggle('on', filt.favOnly);
+  const rs = filtered();
+  document.getElementById('countLine').textContent = '共 '+rs.length+' 間餐廳 · '+rs.length+' restaurants';
+  const list = document.getElementById('list');
+  list.innerHTML = rs.map(r=>{
+    const p = pref(r.id);
+    return '<div class="card" onclick="openDetail(\''+r.id+'\')">'+
+      '<button class="star '+(p.fav?'on':'')+'" onclick="event.stopPropagation();toggleFav(\''+r.id+'\')">⭐</button>'+
+      '<div class="zh">'+r.zh+'</div><div class="en">'+r.en+'</div>'+
+      '<div class="meta"><span class="badge">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+'</span>'+
+      '<span class="badge">'+AREAS[r.area][0]+'</span><span class="badge">'+'$'.repeat(r.price)+'</span></div></div>';
+  }).join('') || '<div class="count">冇符合嘅餐廳 No matches — try fewer filters.</div>';
+}
+function toggleFav(id){ pref(id).fav = !pref(id).fav; save(); render(); }
+
+// ---------- random pick ----------
+function pickRandom(){
+  let rs = filtered();
+  if(!rs.length){ alert('冇符合嘅餐廳！No matching restaurants — remove some filters.'); return; }
+  if(rs.length>1) rs = rs.filter(r=>r.id!==lastPickId); // never same twice in a row
+  const pool = [];
+  rs.forEach(r=>{ pool.push(r); if(pref(r.id).fav) pool.push(r); }); // favourites 2x
+  const r = pool[Math.floor(Math.random()*pool.length)];
+  lastPickId = r.id;
+  openDetail(r.id, true);
+}
+
+// ---------- detail ----------
+function mapUrl(r){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.en+' '+(r.addr||'')+' Richmond BC'); }
+function menuUrl(r){ return 'https://www.google.com/search?q='+encodeURIComponent(r.en+' Richmond BC menu 菜單'); }
+
+// ---------- per-cuisine ordering tips (rules of thumb, no fake quantities) ----------
+const TIPS = {
+  dimsum:'飲茶貼士：每人約2-3籠，記得叫壺茶 Dim sum: roughly 2–3 baskets per person, plus a pot of tea.',
+  cant:'中式食法：餸菜數量 = 人數+1，加白飯 Family style: order (number of people + 1) dishes to share, plus steamed rice.',
+  shanghai:'上海菜同樣家庭式：人數+1味餸；小籠包一人一籠 Family style: people + 1 dishes; one basket of XLB per person.',
+  north:'家庭式：人數+1味餸，辣度可以叫廚房調 Family style: people + 1 dishes; ask for mild spice.',
+  sea:'家庭式：人數+1味餸 Family style: people + 1 dishes to share.',
+  hotpot:'火鍋每人揀3-4款配料，加一個主食 Hot pot: 3–4 items per person, plus one noodle/rice.',
+  bbq:'燒味可斬料拼盤，按人數配大小 Ask for a mixed BBQ platter sized to your group.'
+};
+function tipHtml(r){ const t = TIPS[r.cuisine]; return t ? '<div class="note">💡 '+t+'</div>' : ''; }
+
+function openDetail(id, picked){
+  const r = getR(id); if(!r) return;
+  const p = pref(id);
+  const ds = dishesOf(r);
+  const sheet = document.getElementById('detailSheet');
+  sheet.innerHTML =
+    '<button class="close" onclick="closeDetail()">✕</button>'+
+    (picked?'<div class="picktag">🎉 今日就食呢間！Today, eat here!</div>':'')+
+    '<h2>'+r.zh+' <button class="star '+(p.fav?'on':'')+'" style="position:static;font-size:1.3rem" onclick="toggleFav(\''+id+'\');openDetail(\''+id+'\','+(!!picked)+')">⭐</button></h2>'+
+    '<div class="en2">'+r.en+'</div>'+
+    '<div class="info">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+' · '+AREAS[r.area][0]+' '+AREAS[r.area][1]+' · '+'$'.repeat(r.price)+
+    (r.addr?('<br>📍 '+r.addr):'')+'</div>'+
+    (r.note?('<div class="note">ℹ️ '+r.note+'</div>'):'')+
+    (picked?'<div class="rowbtns"><button class="b-gold" onclick="pickRandom()">🎲 換一間 Pick Again</button></div>':'')+
+    '<div class="rowbtns"><a class="b-red" target="_blank" href="'+mapUrl(r)+'">🗺️ 地圖 Map</a>'+
+    '<a class="b-plain" target="_blank" href="'+menuUrl(r)+'">📋 搵菜單 Find Menu</a>'+
+    (r.url?'<a class="b-plain" target="_blank" href="'+r.url+'">🌐 網站 Website</a>':'')+'</div>'+
+    tipHtml(r)+
+    '<div class="dishes"><h3>🍽️ 推介菜式 Recommended Dishes　<span style="font-weight:400;font-size:.8rem;color:var(--muted)">(按 ❤️ 記低鍾意 tap ❤️ to mark)</span></h3>'+
+    (ds.length? ds.map((d,i)=>
+      '<div class="dish"><div class="dn"><div class="zh">'+d.zh+'</div><div class="en">'+d.en+'</div>'+
+      (d.note?('<div class="dnote">'+d.note+'</div>'):'')+'</div>'+
+      (d.rec?'<span class="rec">👍 招牌 Signature</span>':'')+
+      '<button class="heart '+(p.dishLikes[i]?'on':'')+'" onclick="toggleDish(\''+id+'\','+i+','+(!!picked)+')">❤️</button></div>'
+    ).join(''):'<div class="count">未有菜式 — 可以加！No dishes yet — add one!</div>')+
+    '</div>'+
+    '<div class="rowbtns"><button class="b-plain" onclick="addDishPrompt(\''+id+'\','+(!!picked)+')">＋ 加菜式 Add Dish</button>'+
+    '<button class="b-plain" onclick="startEdit(\''+id+'\')">✏️ 修改 Edit</button>'+
+    '<button class="b-plain" onclick="hideRest(\''+id+'\')">🚫 唔要呢間 Hide</button></div>';
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
+function toggleDish(id,i,picked){ const p=pref(id); p.dishLikes[i]=!p.dishLikes[i]; save(); openDetail(id,picked); }
+function addDishPrompt(id,picked){
+  const zh = prompt('菜式中文名 Dish name (中文):'); if(zh===null) return;
+  const en = prompt('English name:') || '';
+  pref(id).userDishes.push({zh:zh||en, en:en, rec:false});
+  save(); openDetail(id,picked);
+}
+function hideRest(id){
+  if(!confirm('以後唔再顯示呢間？Hide this restaurant from the list?')) return;
+  user.hidden.push(id); save(); closeDetail(); render();
+}
+
+// ---------- add / edit form ----------
+function fillSelect(elId,obj){
+  document.getElementById(elId).innerHTML = Object.keys(obj).map(k=>
+    '<option value="'+k+'">'+obj[k][0]+' '+obj[k][1]+'</option>').join('');
+}
+function openForm(){ editingId=null; document.getElementById('formTitle').textContent='加餐廳 Add Restaurant';
+  document.getElementById('restForm').reset(); showForm(); }
+const $ = id=>document.getElementById(id);
+function startEdit(id){
+  const r=getR(id); if(!r) return; editingId=id; closeDetail();
+  $('formTitle').textContent='修改 Edit Restaurant';
+  $('f_zh').value=r.zh; $('f_en').value=r.en; $('f_cuisine').value=r.cuisine; $('f_area').value=r.area;
+  $('f_price').value=r.price; $('f_addr').value=r.addr||''; $('f_note').value=r.note||'';
+  $('f_dishes').value=(r.dishes||[]).map(d=>d.zh+' / '+d.en+(d.rec?' *':'')).join('\n');
+  showForm();
+}
+function showForm(){ document.getElementById('formOverlay').classList.add('show'); }
+function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
+function parseDishes(txt){
+  return txt.split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const rec = s.endsWith('*'); if(rec) s=s.slice(0,-1).trim();
+    const parts = s.split('/').map(x=>x.trim());
+    return {zh:parts[0]||'', en:parts[1]||parts[0]||'', rec:rec};
+  });
+}
+function saveForm(e){
+  e.preventDefault();
+  const obj = {
+    id: editingId || ('u'+Date.now()),
+    zh: $('f_zh').value.trim()||$('f_en').value.trim(), en: $('f_en').value.trim(),
+    cuisine: $('f_cuisine').value, area: $('f_area').value, price: Number($('f_price').value),
+    addr: $('f_addr').value.trim(), note: $('f_note').value.trim(), dishes: parseDishes($('f_dishes').value)
+  };
+  if(editingId){
+    const si = SEED.findIndex(r=>r.id===editingId);
+    if(si>=0){ SEED.splice(si,1); user.hidden=user.hidden.filter(h=>h!==editingId); obj.id='u'+Date.now(); user.added.push(obj); }
+    else { const ui=user.added.findIndex(r=>r.id===editingId); if(ui>=0) user.added[ui]=obj; }
+  } else user.added.push(obj);
+  save(); closeForm(); render();
+}
+
+// ---------- backup / restore ----------
+function exportData(){
+  const blob = new Blob([JSON.stringify({user:user},null,1)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='restaurant_picker_backup.json'; a.click();
+}
+function importData(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ try{ const d=JSON.parse(rd.result); if(d.user){ user=d.user; save(); render(); alert('已還原 Restored!'); } }catch(e){ alert('檔案有問題 Invalid file'); } };
+  rd.readAsText(f);
+}
+
+// ---------- init ----------
+// v1.0 — 食乜好 Richmond Restaurant Picker
+fillSelect('f_cuisine',CUISINES); fillSelect('f_area',AREAS);
+render();
+</script>
+</body>
+</html>

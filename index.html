@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>食乜好？What to Eat? — Richmond</title>
+<style>
+  :root{
+    --red:#c62828; --red-dark:#8e1c1c; --gold:#f9a825; --cream:#fff8ee;
+    --ink:#2b2118; --muted:#7a6a58; --card:#ffffff; --line:#eadfce;
+    --green:#2e7d32; --chip:#f3e9d7; --chip-on:#c62828;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{font-size:20px;}
+  body{
+    margin:0; background:var(--cream); color:var(--ink);
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC","Heiti TC",-apple-system,"Segoe UI",sans-serif;
+    line-height:1.45;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:12px 14px 90px;}
+  header{text-align:center; padding:10px 0 4px;}
+  header h1{margin:0; font-size:1.7rem; color:var(--red-dark);}
+  header .sub{color:var(--muted); font-size:0.85rem; margin-top:2px;}
+
+  .bigbtn{
+    display:block; width:100%; border:none; border-radius:22px; cursor:pointer;
+    background:linear-gradient(180deg,#d84315,var(--red)); color:#fff;
+    font-size:1.5rem; font-weight:800; padding:22px 16px; margin:14px 0 8px;
+    box-shadow:0 4px 12px rgba(198,40,40,.35); font-family:inherit;
+  }
+  .bigbtn:active{transform:scale(.98);}
+  .bigbtn small{display:block; font-size:0.95rem; font-weight:600; opacity:.92; margin-top:2px;}
+
+  .filters{background:var(--card); border:1px solid var(--line); border-radius:18px; padding:12px; margin:10px 0;}
+  .filters h3{margin:6px 0 6px; font-size:0.95rem; color:var(--muted); font-weight:700;}
+  .chips{display:flex; flex-wrap:wrap; gap:8px;}
+  .chip{
+    border:2px solid var(--line); background:var(--chip); color:var(--ink);
+    border-radius:999px; padding:9px 15px; font-size:0.95rem; cursor:pointer; font-family:inherit; font-weight:600;
+  }
+  .chip.on{background:var(--chip-on); border-color:var(--chip-on); color:#fff;}
+  .favtoggle{margin-top:10px;}
+
+  .count{color:var(--muted); font-size:0.85rem; text-align:center; margin:6px 0;}
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:14px 16px; margin:10px 0; cursor:pointer; position:relative;
+  }
+  .card .zh{font-size:1.25rem; font-weight:800;}
+  .card .en{font-size:0.95rem; color:var(--muted); font-weight:600;}
+  .card .meta{font-size:0.85rem; color:var(--muted); margin-top:4px;}
+  .badge{display:inline-block; background:var(--chip); border-radius:8px; padding:2px 8px; margin-right:6px; font-size:0.8rem;}
+  .star{position:absolute; top:10px; right:12px; font-size:1.4rem; border:none; background:none; cursor:pointer; filter:grayscale(1); opacity:.45;}
+  .star.on{filter:none; opacity:1;}
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(43,33,24,.55); display:none;
+    align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .overlay.show{display:flex;}
+  .sheet{
+    background:var(--cream); width:100%; max-width:640px; max-height:92vh; overflow-y:auto;
+    border-radius:24px 24px 0 0; padding:18px 18px 30px; animation:up .18s ease-out;
+  }
+  @keyframes up{from{transform:translateY(40px); opacity:.5;} to{transform:none; opacity:1;}}
+  .sheet .close{float:right; font-size:1.5rem; border:none; background:var(--chip); border-radius:50%;
+    width:46px; height:46px; cursor:pointer; line-height:1;}
+  .picktag{color:var(--red-dark); font-weight:800; font-size:1.05rem;}
+  .sheet h2{margin:6px 0 0; font-size:1.6rem; line-height:1.25;}
+  .sheet .en2{color:var(--muted); font-size:1.05rem; font-weight:600;}
+  .sheet .info{margin:8px 0; font-size:0.95rem; color:var(--muted);}
+  .note{background:#fff3e0; border:1px solid #ffe0b2; border-radius:12px; padding:8px 12px; font-size:0.9rem; margin:8px 0;}
+
+  .rowbtns{display:flex; gap:10px; margin:12px 0; flex-wrap:wrap;}
+  .rowbtns button, .rowbtns a{
+    flex:1; min-width:130px; text-align:center; border:none; border-radius:16px; padding:14px 10px;
+    font-size:1.05rem; font-weight:700; cursor:pointer; text-decoration:none; font-family:inherit;
+  }
+  .b-red{background:var(--red); color:#fff;}
+  .b-gold{background:var(--gold); color:#3e2723;}
+  .b-plain{background:var(--chip); color:var(--ink); border:1px solid var(--line);}
+
+  .dishes h3{margin:14px 0 6px; font-size:1.05rem; color:var(--red-dark);}
+  .dish{
+    display:flex; align-items:center; gap:10px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0;
+  }
+  .dish .dn{flex:1;}
+  .dish .dn .zh{font-size:1.1rem; font-weight:700;}
+  .dish .dn .en{font-size:0.85rem; color:var(--muted);}
+  .dish .dn .dnote{font-size:0.8rem; color:var(--green); margin-top:2px;}
+  .rec{background:#fdecea; color:var(--red-dark); font-size:0.75rem; border-radius:8px; padding:2px 7px; font-weight:800; white-space:nowrap;}
+  .heart{border:none; background:none; font-size:1.5rem; cursor:pointer; filter:grayscale(1); opacity:.4;}
+  .heart.on{filter:none; opacity:1;}
+
+  /* forms */
+  form label{display:block; font-weight:700; font-size:0.9rem; margin:10px 0 4px;}
+  form input, form select, form textarea{
+    width:100%; font-size:1.05rem; padding:12px; border:2px solid var(--line); border-radius:12px;
+    background:#fff; font-family:inherit;
+  }
+  .toolbar{display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:16px 0 6px;}
+  .toolbar button{background:none; border:1.5px solid var(--line); border-radius:12px; padding:9px 13px;
+    font-size:0.85rem; color:var(--muted); cursor:pointer; font-family:inherit; font-weight:600;}
+  .hint{font-size:0.8rem; color:var(--muted); text-align:center; margin-top:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🥢 食乜好？</h1>
+    <div class="sub">What to Eat Today? · 列治文餐廳小幫手 Richmond Helper</div>
+  </header>
+
+  <button class="bigbtn" onclick="pickRandom()">🎲 幫我揀！<small>Pick For Me!</small></button>
+
+  <div class="filters">
+    <h3>菜式 Cuisine（可揀多款 pick several）</h3><div class="chips" id="cuisineChips"></div>
+    <h3>地區 Area</h3><div class="chips" id="areaChips"></div>
+    <h3>價錢 Price</h3><div class="chips" id="priceChips"></div>
+    <div class="favtoggle chips">
+      <button class="chip" id="favChip" onclick="toggleFavOnly()">⭐ 只睇最愛 Favourites Only</button>
+    </div>
+  </div>
+
+  <div class="count" id="countLine">載入中… Loading…</div>
+  <div id="list"></div>
+
+  <div class="toolbar">
+    <button onclick="openForm()">＋ 加餐廳 Add Restaurant</button>
+    <button onclick="exportData()">⬇︎ 備份 Backup</button>
+    <button onclick="document.getElementById('importFile').click()">⬆︎ 還原 Restore</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+  <div class="hint">資料可隨時修改 · Tap any restaurant to see dishes; family can edit everything.</div>
+</div>
+
+<!-- restaurant detail / pick result -->
+<div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="sheet" id="detailSheet"></div>
+</div>
+
+<!-- add/edit form -->
+<div class="overlay" id="formOverlay" onclick="if(event.target===this)closeForm()">
+  <div class="sheet">
+    <button class="close" onclick="closeForm()">✕</button>
+    <h2 id="formTitle">加餐廳 Add Restaurant</h2>
+    <form id="restForm" onsubmit="saveForm(event)">
+      <label>中文名 Chinese Name</label><input id="f_zh" placeholder="例：陳記小廚">
+      <label>英文名 English Name *</label><input id="f_en" required placeholder="e.g. Chan's Kitchen">
+      <label>菜式 Cuisine</label><select id="f_cuisine"></select>
+      <label>地區 Area</label><select id="f_area"></select>
+      <label>價錢 Price</label>
+      <select id="f_price">
+        <option value="1">$ 平 Budget</option><option value="2" selected>$$ 中等 Moderate</option><option value="3">$$$ 貴 Higher-end</option>
+      </select>
+      <label>地址 Address（可留空 optional）</label><input id="f_addr" placeholder="e.g. 4151 Hazelbridge Way">
+      <label>備註 Note（可留空 optional）</label><input id="f_note" placeholder="e.g. 只收現金 Cash only">
+      <label>招牌菜 Dishes（每行一味：中文 / English one per line）</label>
+      <textarea id="f_dishes" rows="4" placeholder="蝦餃 / Shrimp Dumplings&#10;燒鴨 / Roast Duck"></textarea>
+      <div class="rowbtns"><button type="submit" class="b-red">儲存 Save</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+const CUISINES = {
+  dimsum:["點心早茶","Dim Sum"], cant:["粵菜海鮮","Cantonese"], bbq:["燒臘","BBQ Meats"],
+  noodle:["粥粉麵","Congee & Noodles"], shanghai:["上海菜","Shanghainese"], north:["川湘北方","Sichuan & Northern"], hkcafe:["茶餐廳","HK Café"],
+  hotpot:["火鍋","Hot Pot"], taiwan:["台灣菜","Taiwanese"], viet:["越南菜","Vietnamese"],
+  japan:["日本菜","Japanese"], korea:["韓國菜","Korean"], sea:["東南亞","SE Asian"], western:["西餐","Western"]
+};
+const AREAS = {
+  aberdeen:["時代坊一帶","Aberdeen Area"], citycentre:["市中心/三號路","City Centre"],
+  alexandra:["食街","Alexandra Rd"], steveston:["漁村","Steveston"], other:["其他","Other"]
+};
+const PRICES = {1:"$ 平 Budget", 2:"$$ 中等 Moderate", 3:"$$$ 貴 Higher-end"};
+
+// ---------- data: loaded from restaurants.json (edit that file to update the list) ----------
+let SEED = [];
+fetch('restaurants.json?v='+Date.now(), {cache:'no-store'})
+  .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d=>{ SEED = d; render(); })
+  .catch(()=>{
+    document.getElementById('countLine').textContent='';
+    document.getElementById('list').innerHTML =
+      '<div class="note">⚠️ 讀取唔到餐廳資料。呢個App要透過網址開啟（例如 GitHub Pages），唔可以直接double-click個檔案。<br>'+
+      'Could not load restaurants.json. Open this app from its web address (e.g. GitHub Pages) — opening the file directly blocks data loading.</div>';
+  });
+
+// ---------- state ----------
+const LS_KEY = "rp_data_v1";
+let user = JSON.parse(localStorage.getItem(LS_KEY) || '{"added":[],"prefs":{},"hidden":[]}');
+let filt = {cuisines:[], area:null, price:null, favOnly:false};
+let editingId = null, lastPickId = null;
+
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify(user)); }
+function pref(id){ if(!user.prefs[id]) user.prefs[id]={fav:false,dishLikes:{},userDishes:[]}; return user.prefs[id]; }
+function allRestaurants(){ return SEED.concat(user.added).filter(r=>!user.hidden.includes(r.id)); }
+function getR(id){ return SEED.concat(user.added).find(r=>r.id===id); }
+function dishesOf(r){ return (r.dishes||[]).concat(pref(r.id).userDishes||[]); }
+
+// ---------- filters UI ----------
+function chipRow(elId, obj, key){
+  const el = document.getElementById(elId);
+  const noneOn = (key==='cuisines') ? filt.cuisines.length===0 : filt[key]===null;
+  el.innerHTML = '<button class="chip '+(noneOn?'on':'')+'" onclick="setF(\''+key+'\',null)">全部 All</button>';
+  for(const k in obj){
+    const label = (key==='price') ? obj[k] : obj[k][0]+' '+obj[k][1];
+    const on = (key==='cuisines') ? filt.cuisines.includes(k) : String(filt[key])===String(k);
+    el.innerHTML += '<button class="chip '+(on?'on':'')+'" onclick="setF(\''+key+'\',\''+k+'\')">'+label+'</button>';
+  }
+}
+function setF(key,val){
+  if(key==='cuisines'){ // multi-select: tap to toggle, All clears
+    if(val===null) filt.cuisines=[];
+    else filt.cuisines = filt.cuisines.includes(val) ? filt.cuisines.filter(c=>c!==val) : filt.cuisines.concat(val);
+  } else filt[key] = (val===null)?null:(key==='price'?Number(val):val);
+  render();
+}
+function toggleFavOnly(){ filt.favOnly=!filt.favOnly; render(); }
+
+function filtered(){
+  return allRestaurants().filter(r=>
+    (!filt.cuisines.length || filt.cuisines.includes(r.cuisine)) &&
+    (!filt.area || r.area===filt.area) &&
+    (!filt.price || r.price===filt.price) &&
+    (!filt.favOnly || pref(r.id).fav)
+  );
+}
+
+// ---------- render list ----------
+function render(){
+  chipRow('cuisineChips', CUISINES, 'cuisines');
+  chipRow('areaChips', AREAS, 'area');
+  chipRow('priceChips', PRICES, 'price');
+  document.getElementById('favChip').classList.toggle('on', filt.favOnly);
+  const rs = filtered();
+  document.getElementById('countLine').textContent = '共 '+rs.length+' 間餐廳 · '+rs.length+' restaurants';
+  const list = document.getElementById('list');
+  list.innerHTML = rs.map(r=>{
+    const p = pref(r.id);
+    return '<div class="card" onclick="openDetail(\''+r.id+'\')">'+
+      '<button class="star '+(p.fav?'on':'')+'" onclick="event.stopPropagation();toggleFav(\''+r.id+'\')">⭐</button>'+
+      '<div class="zh">'+r.zh+'</div><div class="en">'+r.en+'</div>'+
+      '<div class="meta"><span class="badge">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+'</span>'+
+      '<span class="badge">'+AREAS[r.area][0]+'</span><span class="badge">'+'$'.repeat(r.price)+'</span></div></div>';
+  }).join('') || '<div class="count">冇符合嘅餐廳 No matches — try fewer filters.</div>';
+}
+function toggleFav(id){ pref(id).fav = !pref(id).fav; save(); render(); }
+
+// ---------- random pick ----------
+function pickRandom(){
+  let rs = filtered();
+  if(!rs.length){ alert('冇符合嘅餐廳！No matching restaurants — remove some filters.'); return; }
+  if(rs.length>1) rs = rs.filter(r=>r.id!==lastPickId); // never same twice in a row
+  const pool = [];
+  rs.forEach(r=>{ pool.push(r); if(pref(r.id).fav) pool.push(r); }); // favourites 2x
+  const r = pool[Math.floor(Math.random()*pool.length)];
+  lastPickId = r.id;
+  openDetail(r.id, true);
+}
+
+// ---------- detail ----------
+function mapUrl(r){ return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(r.en+' '+(r.addr||'')+' Richmond BC'); }
+function menuUrl(r){ return 'https://www.google.com/search?q='+encodeURIComponent(r.en+' Richmond BC menu 菜單'); }
+
+// ---------- per-cuisine ordering tips (rules of thumb, no fake quantities) ----------
+const TIPS = {
+  dimsum:'飲茶貼士：每人約2-3籠，記得叫壺茶 Dim sum: roughly 2–3 baskets per person, plus a pot of tea.',
+  cant:'中式食法：餸菜數量 = 人數+1，加白飯 Family style: order (number of people + 1) dishes to share, plus steamed rice.',
+  shanghai:'上海菜同樣家庭式：人數+1味餸；小籠包一人一籠 Family style: people + 1 dishes; one basket of XLB per person.',
+  north:'家庭式：人數+1味餸，辣度可以叫廚房調 Family style: people + 1 dishes; ask for mild spice.',
+  sea:'家庭式：人數+1味餸 Family style: people + 1 dishes to share.',
+  hotpot:'火鍋每人揀3-4款配料，加一個主食 Hot pot: 3–4 items per person, plus one noodle/rice.',
+  bbq:'燒味可斬料拼盤，按人數配大小 Ask for a mixed BBQ platter sized to your group.'
+};
+function tipHtml(r){ const t = TIPS[r.cuisine]; return t ? '<div class="note">💡 '+t+'</div>' : ''; }
+
+function openDetail(id, picked){
+  const r = getR(id); if(!r) return;
+  const p = pref(id);
+  const ds = dishesOf(r);
+  const sheet = document.getElementById('detailSheet');
+  sheet.innerHTML =
+    '<button class="close" onclick="closeDetail()">✕</button>'+
+    (picked?'<div class="picktag">🎉 今日就食呢間！Today, eat here!</div>':'')+
+    '<h2>'+r.zh+' <button class="star '+(p.fav?'on':'')+'" style="position:static;font-size:1.3rem" onclick="toggleFav(\''+id+'\');openDetail(\''+id+'\','+(!!picked)+')">⭐</button></h2>'+
+    '<div class="en2">'+r.en+'</div>'+
+    '<div class="info">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+' · '+AREAS[r.area][0]+' '+AREAS[r.area][1]+' · '+'$'.repeat(r.price)+
+    (r.addr?('<br>📍 '+r.addr):'')+'</div>'+
+    (r.note?('<div class="note">ℹ️ '+r.note+'</div>'):'')+
+    (picked?'<div class="rowbtns"><button class="b-gold" onclick="pickRandom()">🎲 換一間 Pick Again</button></div>':'')+
+    '<div class="rowbtns"><a class="b-red" target="_blank" href="'+mapUrl(r)+'">🗺️ 地圖 Map</a>'+
+    '<a class="b-plain" target="_blank" href="'+menuUrl(r)+'">📋 搵菜單 Find Menu</a>'+
+    (r.url?'<a class="b-plain" target="_blank" href="'+r.url+'">🌐 網站 Website</a>':'')+'</div>'+
+    tipHtml(r)+
+    '<div class="dishes"><h3>🍽️ 推介菜式 Recommended Dishes　<span style="font-weight:400;font-size:.8rem;color:var(--muted)">(按 ❤️ 記低鍾意 tap ❤️ to mark)</span></h3>'+
+    (ds.length? ds.map((d,i)=>
+      '<div class="dish"><div class="dn"><div class="zh">'+d.zh+'</div><div class="en">'+d.en+'</div>'+
+      (d.note?('<div class="dnote">'+d.note+'</div>'):'')+'</div>'+
+      (d.rec?'<span class="rec">👍 招牌 Signature</span>':'')+
+      '<button class="heart '+(p.dishLikes[i]?'on':'')+'" onclick="toggleDish(\''+id+'\','+i+','+(!!picked)+')">❤️</button></div>'
+    ).join(''):'<div class="count">未有菜式 — 可以加！No dishes yet — add one!</div>')+
+    '</div>'+
+    '<div class="rowbtns"><button class="b-plain" onclick="addDishPrompt(\''+id+'\','+(!!picked)+')">＋ 加菜式 Add Dish</button>'+
+    '<button class="b-plain" onclick="startEdit(\''+id+'\')">✏️ 修改 Edit</button>'+
+    '<button class="b-plain" onclick="hideRest(\''+id+'\')">🚫 唔要呢間 Hide</button></div>';
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
+function toggleDish(id,i,picked){ const p=pref(id); p.dishLikes[i]=!p.dishLikes[i]; save(); openDetail(id,picked); }
+function addDishPrompt(id,picked){
+  const zh = prompt('菜式中文名 Dish name (中文):'); if(zh===null) return;
+  const en = prompt('English name:') || '';
+  pref(id).userDishes.push({zh:zh||en, en:en, rec:false});
+  save(); openDetail(id,picked);
+}
+function hideRest(id){
+  if(!confirm('以後唔再顯示呢間？Hide this restaurant from the list?')) return;
+  user.hidden.push(id); save(); closeDetail(); render();
+}
+
+// ---------- add / edit form ----------
+function fillSelect(elId,obj){
+  document.getElementById(elId).innerHTML = Object.keys(obj).map(k=>
+    '<option value="'+k+'">'+obj[k][0]+' '+obj[k][1]+'</option>').join('');
+}
+function openForm(){ editingId=null; document.getElementById('formTitle').textContent='加餐廳 Add Restaurant';
+  document.getElementById('restForm').reset(); showForm(); }
+const $ = id=>document.getElementById(id);
+function startEdit(id){
+  const r=getR(id); if(!r) return; editingId=id; closeDetail();
+  $('formTitle').textContent='修改 Edit Restaurant';
+  $('f_zh').value=r.zh; $('f_en').value=r.en; $('f_cuisine').value=r.cuisine; $('f_area').value=r.area;
+  $('f_price').value=r.price; $('f_addr').value=r.addr||''; $('f_note').value=r.note||'';
+  $('f_dishes').value=(r.dishes||[]).map(d=>d.zh+' / '+d.en+(d.rec?' *':'')).join('\n');
+  showForm();
+}
+function showForm(){ document.getElementById('formOverlay').classList.add('show'); }
+function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
+function parseDishes(txt){
+  return txt.split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const rec = s.endsWith('*'); if(rec) s=s.slice(0,-1).trim();
+    const parts = s.split('/').map(x=>x.trim());
+    return {zh:parts[0]||'', en:parts[1]||parts[0]||'', rec:rec};
+  });
+}
+function saveForm(e){
+  e.preventDefault();
+  const obj = {
+    id: editingId || ('u'+Date.now()),
+    zh: $('f_zh').value.trim()||$('f_en').value.trim(), en: $('f_en').value.trim(),
+    cuisine: $('f_cuisine').value, area: $('f_area').value, price: Number($('f_price').value),
+    addr: $('f_addr').value.trim(), note: $('f_note').value.trim(), dishes: parseDishes($('f_dishes').value)
+  };
+  if(editingId){
+    const si = SEED.findIndex(r=>r.id===editingId);
+    if(si>=0){ SEED.splice(si,1); user.hidden=user.hidden.filter(h=>h!==editingId); obj.id='u'+Date.now(); user.added.push(obj); }
+    else { const ui=user.added.findIndex(r=>r.id===editingId); if(ui>=0) user.added[ui]=obj; }
+  } else user.added.push(obj);
+  save(); closeForm(); render();
+}
+
+// ---------- backup / restore ----------
+function exportData(){
+  const blob = new Blob([JSON.stringify({user:user},null,1)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='restaurant_picker_backup.json'; a.click();
+}
+function importData(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ try{ const d=JSON.parse(rd.result); if(d.user){ user=d.user; save(); render(); alert('已還原 Restored!'); } }catch(e){ alert('檔案有問題 Invalid file'); } };
+  rd.readAsText(f);
+}
+
+// ---------- init ----------
+// v2.0 — 食乜好 Richmond Restaurant Picker (data lives in restaurants.json)
+fillSelect('f_cuisine',CUISINES); fillSelect('f_area',AREAS);
+render();
+</script>
+</body>
+</html>
