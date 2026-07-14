@@ -86,8 +86,10 @@
   .dishes h3{margin:14px 0 6px; font-size:1.05rem; color:var(--red-dark);}
   .dish{
     display:flex; align-items:center; gap:10px; background:var(--card);
-    border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0;
+    border:2px solid var(--line); border-radius:14px; padding:10px 12px; margin:8px 0;
   }
+  .dish.sel{border-color:var(--red); background:#fdecea;}
+  .dish img{width:56px; height:56px; object-fit:cover; border-radius:10px;}
   .dish .dn{flex:1;}
   .dish .dn .zh{font-size:1.1rem; font-weight:700;}
   .dish .dn .en{font-size:0.85rem; color:var(--muted);}
@@ -95,6 +97,9 @@
   .rec{background:#fdecea; color:var(--red-dark); font-size:0.75rem; border-radius:8px; padding:2px 7px; font-weight:800; white-space:nowrap;}
   .heart{border:none; background:none; font-size:1.5rem; cursor:pointer; filter:grayscale(1); opacity:.4;}
   .heart.on{filter:none; opacity:1;}
+  .qtybtn{border:1px solid var(--line); background:var(--card); border-radius:10px; padding:4px 12px;
+    font-size:1.3rem; font-weight:800; cursor:pointer; font-family:inherit;}
+  .jumbo{font-size:2rem; font-weight:800; line-height:1.9; margin:14px 0;}
 
   /* forms */
   form label{display:block; font-weight:700; font-size:0.9rem; margin:10px 0 4px;}
@@ -118,6 +123,7 @@
   <button class="bigbtn" onclick="pickRandom()">🎲 幫我揀！<small>Pick For Me!</small></button>
 
   <div class="filters">
+    <h3>時段 Time of Day　<span style="font-weight:400">🕐＝依家 now</span></h3><div class="chips" id="mealChips"></div>
     <h3>菜式 Cuisine（可揀多款 pick several）</h3><div class="chips" id="cuisineChips"></div>
     <h3>地區 Area</h3><div class="chips" id="areaChips"></div>
     <h3>價錢 Price</h3><div class="chips" id="priceChips"></div>
@@ -138,7 +144,7 @@
   <div class="hint">資料可隨時修改 · Tap any restaurant to see dishes; family can edit everything.</div>
 </div>
 
-<!-- restaurant detail / pick result -->
+<!-- restaurant detail / pick result / order card -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
   <div class="sheet" id="detailSheet"></div>
 </div>
@@ -157,6 +163,7 @@
       <select id="f_price">
         <option value="1">$ 平 Budget</option><option value="2" selected>$$ 中等 Moderate</option><option value="3">$$$ 貴 Higher-end</option>
       </select>
+      <label>電話 Phone（可留空 optional）</label><input id="f_tel" placeholder="e.g. 604-273-0000">
       <label>地址 Address（可留空 optional）</label><input id="f_addr" placeholder="e.g. 4151 Hazelbridge Way">
       <label>備註 Note（可留空 optional）</label><input id="f_note" placeholder="e.g. 只收現金 Cash only">
       <label>招牌菜 Dishes（每行一味：中文 / English one per line）</label>
@@ -179,22 +186,38 @@ const AREAS = {
 };
 const PRICES = {1:"$ 平 Budget", 2:"$$ 中等 Moderate", 3:"$$$ 貴 Higher-end"};
 
+// ---------- time-of-day (meal periods) ----------
+const MEALS = {breakfast:["早市","Morning"], lunch:["晏晝","Lunch"], afternoon:["下晝茶","Afternoon"], dinner:["晚市","Dinner"]};
+const CUISINE_MEALS = { // defaults; a restaurant can override with its own "meals" array in restaurants.json
+  dimsum:['breakfast','lunch','dinner'], cant:['lunch','dinner'], bbq:['lunch','dinner'],
+  noodle:['breakfast','lunch','afternoon','dinner'], shanghai:['lunch','dinner'], north:['lunch','dinner'],
+  hkcafe:['breakfast','lunch','afternoon','dinner'], hotpot:['lunch','dinner'], taiwan:['lunch','afternoon','dinner'],
+  viet:['lunch','dinner'], japan:['lunch','dinner'], korea:['lunch','dinner'], sea:['lunch','dinner'], western:['lunch','dinner']
+};
+function mealsOf(r){ return r.meals || CUISINE_MEALS[r.cuisine] || ['breakfast','lunch','afternoon','dinner']; }
+function currentPeriod(){
+  const now = new Date(), h = now.getHours() + now.getMinutes()/60;
+  if(h>=6 && h<11) return 'breakfast';
+  if(h>=11 && h<14.5) return 'lunch';
+  if(h>=14.5 && h<17) return 'afternoon';
+  if(h>=17 && h<23) return 'dinner';
+  return null; // late night → show all
+}
+
 // ---------- data: loaded from restaurants.json (edit that file to update the list) ----------
-let SEED = [];
+let SEED = [], dataLoaded = false, dataError = false;
+const LOAD_ERR =
+  '<div class="note">⚠️ 讀取唔到餐廳資料。呢個App要透過網址開啟（例如 GitHub Pages），唔可以直接double-click個檔案。<br>'+
+  'Could not load restaurants.json. Open this app from its web address (e.g. GitHub Pages) — opening the file directly blocks data loading.</div>';
 fetch('restaurants.json?v='+Date.now(), {cache:'no-store'})
   .then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); })
-  .then(d=>{ SEED = d; render(); })
-  .catch(()=>{
-    document.getElementById('countLine').textContent='';
-    document.getElementById('list').innerHTML =
-      '<div class="note">⚠️ 讀取唔到餐廳資料。呢個App要透過網址開啟（例如 GitHub Pages），唔可以直接double-click個檔案。<br>'+
-      'Could not load restaurants.json. Open this app from its web address (e.g. GitHub Pages) — opening the file directly blocks data loading.</div>';
-  });
+  .then(d=>{ SEED = d; dataLoaded = true; render(); })
+  .catch(()=>{ dataError = true; render(); });
 
 // ---------- state ----------
 const LS_KEY = "rp_data_v1";
 let user = JSON.parse(localStorage.getItem(LS_KEY) || '{"added":[],"prefs":{},"hidden":[]}');
-let filt = {cuisines:[], area:null, price:null, favOnly:false};
+let filt = {cuisines:[], area:null, price:null, favOnly:false, meal: currentPeriod()};
 let editingId = null, lastPickId = null;
 
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(user)); }
@@ -202,6 +225,23 @@ function pref(id){ if(!user.prefs[id]) user.prefs[id]={fav:false,dishLikes:{},us
 function allRestaurants(){ return SEED.concat(user.added).filter(r=>!user.hidden.includes(r.id)); }
 function getR(id){ return SEED.concat(user.added).find(r=>r.id===id); }
 function dishesOf(r){ return (r.dishes||[]).concat(pref(r.id).userDishes||[]); }
+
+// ---------- eating log (trust & habit) ----------
+function markEaten(id,picked){
+  (user.eaten = user.eaten||[]).push({id:id, t:Date.now()});
+  if(user.eaten.length>200) user.eaten = user.eaten.slice(-200);
+  save(); openDetail(id,picked);
+}
+function lastEaten(id){
+  const e = (user.eaten||[]).filter(x=>x.id===id);
+  return e.length ? e[e.length-1].t : null;
+}
+function daysAgo(t){ return Math.floor((Date.now()-t)/86400000); }
+function eatenBadge(id){
+  const t = lastEaten(id); if(t===null) return '';
+  const d = daysAgo(t); if(d>30) return '';
+  return '<span class="badge">✅ '+(d===0?'今日食咗':d+'日前食過')+'</span>';
+}
 
 // ---------- filters UI ----------
 function chipRow(elId, obj, key){
@@ -214,6 +254,15 @@ function chipRow(elId, obj, key){
     el.innerHTML += '<button class="chip '+(on?'on':'')+'" onclick="setF(\''+key+'\',\''+k+'\')">'+label+'</button>';
   }
 }
+function mealRow(){
+  const el = document.getElementById('mealChips'), cur = currentPeriod();
+  el.innerHTML = '<button class="chip '+(filt.meal===null?'on':'')+'" onclick="setMeal(null)">全部 All</button>';
+  for(const k in MEALS){
+    el.innerHTML += '<button class="chip '+(filt.meal===k?'on':'')+'" onclick="setMeal(\''+k+'\')">'+
+      MEALS[k][0]+' '+MEALS[k][1]+(k===cur?' 🕐':'')+'</button>';
+  }
+}
+function setMeal(k){ filt.meal=k; render(); }
 function setF(key,val){
   if(key==='cuisines'){ // multi-select: tap to toggle, All clears
     if(val===null) filt.cuisines=[];
@@ -225,6 +274,7 @@ function toggleFavOnly(){ filt.favOnly=!filt.favOnly; render(); }
 
 function filtered(){
   return allRestaurants().filter(r=>
+    (!filt.meal || mealsOf(r).includes(filt.meal)) &&
     (!filt.cuisines.length || filt.cuisines.includes(r.cuisine)) &&
     (!filt.area || r.area===filt.area) &&
     (!filt.price || r.price===filt.price) &&
@@ -234,29 +284,52 @@ function filtered(){
 
 // ---------- render list ----------
 function render(){
+  mealRow();
   chipRow('cuisineChips', CUISINES, 'cuisines');
   chipRow('areaChips', AREAS, 'area');
   chipRow('priceChips', PRICES, 'price');
   document.getElementById('favChip').classList.toggle('on', filt.favOnly);
+  const list = document.getElementById('list');
+  if(dataError){ document.getElementById('countLine').textContent=''; list.innerHTML = LOAD_ERR; return; }
+  if(!dataLoaded){ document.getElementById('countLine').textContent='載入中… Loading…'; list.innerHTML=''; return; }
   const rs = filtered();
   document.getElementById('countLine').textContent = '共 '+rs.length+' 間餐廳 · '+rs.length+' restaurants';
-  const list = document.getElementById('list');
   list.innerHTML = rs.map(r=>{
     const p = pref(r.id);
     return '<div class="card" onclick="openDetail(\''+r.id+'\')">'+
       '<button class="star '+(p.fav?'on':'')+'" onclick="event.stopPropagation();toggleFav(\''+r.id+'\')">⭐</button>'+
       '<div class="zh">'+r.zh+'</div><div class="en">'+r.en+'</div>'+
       '<div class="meta"><span class="badge">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+'</span>'+
-      '<span class="badge">'+AREAS[r.area][0]+'</span><span class="badge">'+'$'.repeat(r.price)+'</span></div></div>';
+      '<span class="badge">'+AREAS[r.area][0]+'</span><span class="badge">'+'$'.repeat(r.price)+'</span>'+
+      eatenBadge(r.id)+'</div></div>';
   }).join('') || '<div class="count">冇符合嘅餐廳 No matches — try fewer filters.</div>';
 }
 function toggleFav(id){ pref(id).fav = !pref(id).fav; save(); render(); }
 
 // ---------- random pick ----------
 function pickRandom(){
+  if(dataError){ alert('⚠️ 餐廳資料未載入到。請用網址開App。\nRestaurant data could not load — open the app from its web address (GitHub Pages), not as a local file.'); return; }
+  if(!dataLoaded){ alert('資料載入中，等一等再撳。Data still loading — try again in a second.'); return; }
   let rs = filtered();
-  if(!rs.length){ alert('冇符合嘅餐廳！No matching restaurants — remove some filters.'); return; }
+  if(!rs.length){
+    // if the time-of-day filter is the reason, offer to widen it instead of dead-ending
+    const savedMeal = filt.meal;
+    if(savedMeal){
+      filt.meal = null;
+      const without = filtered();
+      filt.meal = savedMeal;
+      if(without.length){
+        if(confirm('呢個時段（'+MEALS[savedMeal][0]+'）冇符合嘅餐廳。改為睇全部時段？\nNo matches for this time of day. Show all times instead?')){
+          setMeal(null); pickRandom();
+        }
+        return;
+      }
+    }
+    alert('冇符合嘅餐廳！No matching restaurants — remove some filters.'); return;
+  }
   if(rs.length>1) rs = rs.filter(r=>r.id!==lastPickId); // never same twice in a row
+  const fresh = rs.filter(r=>{ const t=lastEaten(r.id); return t===null || daysAgo(t)>=3; }); // skip places eaten in last 3 days
+  if(fresh.length) rs = fresh;
   const pool = [];
   rs.forEach(r=>{ pool.push(r); if(pref(r.id).fav) pool.push(r); }); // favourites 2x
   const r = pool[Math.floor(Math.random()*pool.length)];
@@ -280,29 +353,49 @@ const TIPS = {
 };
 function tipHtml(r){ const t = TIPS[r.cuisine]; return t ? '<div class="note">💡 '+t+'</div>' : ''; }
 
+function dishBadge(d){
+  if(d.by) return '<span class="rec">💬 '+d.by+'推介</span>';
+  return d.rec ? '<span class="rec">👍 招牌 Signature</span>' : '';
+}
+function pickTag(id){
+  const p = pref(id), t = lastEaten(id);
+  if(p.fav) return '<span class="badge" style="background:#fdecea">🏠 老地方 Your regular</span>';
+  if(t===null) return '<span class="badge" style="background:#e8f5e9">✨ 試下新嘢 Something new</span>';
+  return '';
+}
+
 function openDetail(id, picked){
   const r = getR(id); if(!r) return;
   const p = pref(id);
   const ds = dishesOf(r);
+  const t = lastEaten(id);
   const sheet = document.getElementById('detailSheet');
   sheet.innerHTML =
     '<button class="close" onclick="closeDetail()">✕</button>'+
-    (picked?'<div class="picktag">🎉 今日就食呢間！Today, eat here!</div>':'')+
+    (picked?'<div class="picktag">🎉 今日就食呢間！Today, eat here! '+pickTag(id)+'</div>':'')+
     '<h2>'+r.zh+' <button class="star '+(p.fav?'on':'')+'" style="position:static;font-size:1.3rem" onclick="toggleFav(\''+id+'\');openDetail(\''+id+'\','+(!!picked)+')">⭐</button></h2>'+
     '<div class="en2">'+r.en+'</div>'+
     '<div class="info">'+CUISINES[r.cuisine][0]+' '+CUISINES[r.cuisine][1]+' · '+AREAS[r.area][0]+' '+AREAS[r.area][1]+' · '+'$'.repeat(r.price)+
-    (r.addr?('<br>📍 '+r.addr):'')+'</div>'+
+    (r.addr?('<br>📍 '+r.addr):'')+
+    (t!==null && daysAgo(t)<=30 ? ('<br>✅ 上次食：'+(daysAgo(t)===0?'今日':daysAgo(t)+'日前')+' Last visit') : '')+'</div>'+
     (r.note?('<div class="note">ℹ️ '+r.note+'</div>'):'')+
     (picked?'<div class="rowbtns"><button class="b-gold" onclick="pickRandom()">🎲 換一間 Pick Again</button></div>':'')+
-    '<div class="rowbtns"><a class="b-red" target="_blank" href="'+mapUrl(r)+'">🗺️ 地圖 Map</a>'+
-    '<a class="b-plain" target="_blank" href="'+menuUrl(r)+'">📋 搵菜單 Find Menu</a>'+
+    '<div class="rowbtns">'+
+    (r.tel?'<a class="b-red" href="tel:'+r.tel+'">📞 打電話 Call</a>':'')+
+    '<a class="'+(r.tel?'b-plain':'b-red')+'" target="_blank" href="'+mapUrl(r)+'">🗺️ 地圖 Map</a>'+
+    '<a class="b-plain" target="_blank" href="'+menuUrl(r)+'">📋 搵菜單 Menu</a>'+
     (r.url?'<a class="b-plain" target="_blank" href="'+r.url+'">🌐 網站 Website</a>':'')+'</div>'+
+    '<div class="rowbtns">'+
+    '<button class="b-gold" onclick="openOrder(\''+id+'\')">📝 落單紙 Order Card</button>'+
+    '<button class="b-plain" onclick="markEaten(\''+id+'\','+(!!picked)+')">✅ 食咗 Ate Here</button>'+
+    '<button class="b-plain" onclick="sharePick(\''+id+'\')">📤 話俾屋企人 Share</button></div>'+
     tipHtml(r)+
     '<div class="dishes"><h3>🍽️ 推介菜式 Recommended Dishes　<span style="font-weight:400;font-size:.8rem;color:var(--muted)">(按 ❤️ 記低鍾意 tap ❤️ to mark)</span></h3>'+
     (ds.length? ds.map((d,i)=>
-      '<div class="dish"><div class="dn"><div class="zh">'+d.zh+'</div><div class="en">'+d.en+'</div>'+
+      '<div class="dish">'+(d.photo?('<img src="'+d.photo+'" alt="">'):'')+
+      '<div class="dn"><div class="zh">'+d.zh+'</div><div class="en">'+d.en+'</div>'+
       (d.note?('<div class="dnote">'+d.note+'</div>'):'')+'</div>'+
-      (d.rec?'<span class="rec">👍 招牌 Signature</span>':'')+
+      dishBadge(d)+
       '<button class="heart '+(p.dishLikes[i]?'on':'')+'" onclick="toggleDish(\''+id+'\','+i+','+(!!picked)+')">❤️</button></div>'
     ).join(''):'<div class="count">未有菜式 — 可以加！No dishes yet — add one!</div>')+
     '</div>'+
@@ -316,13 +409,65 @@ function toggleDish(id,i,picked){ const p=pref(id); p.dishLikes[i]=!p.dishLikes[
 function addDishPrompt(id,picked){
   const zh = prompt('菜式中文名 Dish name (中文):'); if(zh===null) return;
   const en = prompt('English name:') || '';
-  pref(id).userDishes.push({zh:zh||en, en:en, rec:false});
+  const by = prompt('邊個推介？(可留空) Recommended by (optional):') || '';
+  pref(id).userDishes.push({zh:zh||en, en:en, rec:false, by:by});
   save(); openDetail(id,picked);
 }
 function hideRest(id){
   if(!confirm('以後唔再顯示呢間？Hide this restaurant from the list?')) return;
   user.hidden.push(id); save(); closeDetail(); render();
 }
+
+// ---------- share (family group chat) ----------
+function sharePick(id){
+  const r = getR(id); if(!r) return;
+  const txt = '今日食呢間 Eat here today:\n'+r.zh+' · '+r.en+
+    (r.addr?('\n📍 '+r.addr+', Richmond'):'')+(r.tel?('\n📞 '+r.tel):'')+'\n'+mapUrl(r);
+  if(navigator.share){ navigator.share({text:txt}).catch(()=>{}); }
+  else if(navigator.clipboard){ navigator.clipboard.writeText(txt); alert('已複製！貼喺WhatsApp/微信 Copied — paste into WhatsApp/WeChat.'); }
+  else alert(txt);
+}
+
+// ---------- order card 落單紙 ----------
+let orderSel = {};
+function openOrder(id){
+  const r = getR(id); if(!r) return;
+  const p = pref(id);
+  orderSel = {};
+  dishesOf(r).forEach((d,i)=>{ if(p.dishLikes[i] || d.rec) orderSel[i]=1; }); // pre-select loved + signature
+  renderOrder(id,false);
+}
+function renderOrder(id, jumbo){
+  const r = getR(id), ds = dishesOf(r);
+  const sheet = document.getElementById('detailSheet');
+  if(!jumbo){
+    sheet.innerHTML =
+      '<button class="close" onclick="openDetail(\''+id+'\')">←</button>'+
+      '<h2>📝 落單紙 Order Card</h2><div class="en2">'+r.zh+'</div>'+
+      '<div class="count" style="text-align:left">撳一下揀菜，再用＋/−較數量 · Tap dishes to pick; adjust quantity with ＋/−</div>'+
+      ds.map((d,i)=>{
+        const q = orderSel[i]||0;
+        return '<div class="dish'+(q?' sel':'')+'" onclick="orderTap('+i+',\''+id+'\')">'+
+          '<div class="dn"><div class="zh">'+d.zh+'</div><div class="en">'+d.en+'</div></div>'+
+          (q?('<button class="qtybtn" onclick="event.stopPropagation();orderQty('+i+',-1,\''+id+'\')">−</button>'+
+            '<span style="font-size:1.3rem;font-weight:800;min-width:24px;text-align:center">'+q+'</span>'+
+            '<button class="qtybtn" onclick="event.stopPropagation();orderQty('+i+',1,\''+id+'\')">＋</button>'):'')+
+          '</div>';
+      }).join('')+
+      '<div class="rowbtns"><button class="b-red" onclick="renderOrder(\''+id+'\',true)">👁️ 顯示俾侍應睇 Show to Server</button></div>';
+  } else {
+    const items = Object.keys(orderSel).filter(i=>orderSel[i]>0);
+    sheet.innerHTML =
+      '<button class="close" onclick="renderOrder(\''+id+'\',false)">←</button>'+
+      '<div class="en2">'+r.zh+'</div>'+
+      '<div class="jumbo">'+
+      (items.length ? items.map(i=>orderSel[i]+' × '+ds[i].zh+'<br><span style="font-size:1rem;color:var(--muted);font-weight:600">'+ds[i].en+'</span>').join('<br>')
+        : '未揀菜式 No dishes selected')+
+      '<br><span style="color:var(--muted)">唔該！🙏</span></div>';
+  }
+}
+function orderTap(i,id){ orderSel[i] = orderSel[i] ? 0 : 1; renderOrder(id,false); }
+function orderQty(i,delta,id){ orderSel[i] = Math.max(0,(orderSel[i]||0)+delta); renderOrder(id,false); }
 
 // ---------- add / edit form ----------
 function fillSelect(elId,obj){
@@ -336,7 +481,7 @@ function startEdit(id){
   const r=getR(id); if(!r) return; editingId=id; closeDetail();
   $('formTitle').textContent='修改 Edit Restaurant';
   $('f_zh').value=r.zh; $('f_en').value=r.en; $('f_cuisine').value=r.cuisine; $('f_area').value=r.area;
-  $('f_price').value=r.price; $('f_addr').value=r.addr||''; $('f_note').value=r.note||'';
+  $('f_price').value=r.price; $('f_tel').value=r.tel||''; $('f_addr').value=r.addr||''; $('f_note').value=r.note||'';
   $('f_dishes').value=(r.dishes||[]).map(d=>d.zh+' / '+d.en+(d.rec?' *':'')).join('\n');
   showForm();
 }
@@ -355,7 +500,8 @@ function saveForm(e){
     id: editingId || ('u'+Date.now()),
     zh: $('f_zh').value.trim()||$('f_en').value.trim(), en: $('f_en').value.trim(),
     cuisine: $('f_cuisine').value, area: $('f_area').value, price: Number($('f_price').value),
-    addr: $('f_addr').value.trim(), note: $('f_note').value.trim(), dishes: parseDishes($('f_dishes').value)
+    tel: $('f_tel').value.trim(), addr: $('f_addr').value.trim(), note: $('f_note').value.trim(),
+    dishes: parseDishes($('f_dishes').value)
   };
   if(editingId){
     const si = SEED.findIndex(r=>r.id===editingId);
@@ -379,7 +525,8 @@ function importData(ev){
 }
 
 // ---------- init ----------
-// v2.0 — 食乜好 Richmond Restaurant Picker (data lives in restaurants.json)
+// v3.0 — 食乜好 Richmond Restaurant Picker (data in restaurants.json)
+// New in v3: time-of-day filtering, 落單紙 order card, 食咗 eating log, 推介 markers, share, tap-to-call
 fillSelect('f_cuisine',CUISINES); fillSelect('f_area',AREAS);
 render();
 </script>
